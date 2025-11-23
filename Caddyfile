@@ -10,9 +10,52 @@
 # - Domain names (when DNS is configured) → Automatic SSL
 # - IP address (152.53.87.200) → Works immediately, no SSL
 
-# Landing Page / Frontend
-# Works with both domain and IP
-lomi.social, 152.53.87.200, local.lomi {
+# HTTP-only block for IP address (no SSL)
+# Use this when accessing via IP: http://152.53.87.200
+:80 {
+    # Handle API requests
+    handle /api/* {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+        }
+    }
+    
+    # Handle WebSocket
+    handle /ws {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+        }
+    }
+    
+    # Handle frontend
+    handle {
+        root * /var/www/lomi-frontend
+        try_files {path} /index.html
+        file_server
+    }
+    
+    # CORS headers
+    header {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    }
+    
+    # Security headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+    }
+    
+    encode gzip zstd
+}
+
+# Domain-based blocks (automatic HTTPS/SSL)
+# Use this when DNS is configured: https://lomi.social
+lomi.social, local.lomi {
     # Serve static files (if hosting frontend on server)
     # Update this path to where your frontend build is located
     root * /var/www/lomi-frontend
@@ -32,19 +75,13 @@ lomi.social, 152.53.87.200, local.lomi {
     # Compression
     encode gzip zstd
     
-    # Logging (commented out - fix permissions first)
-    # log {
-    #     output file /var/log/caddy/frontend.log
-    #     format json
-    # }
-    
     # File server
     file_server
 }
 
-# Backend API
-# Works with both domain and IP
-# Access via: api.lomi.social OR 152.53.87.200 (use /api/* path)
+# Backend API (domain only - automatic HTTPS)
+# Access via: https://api.lomi.social/api/v1/health
+# For IP access, use the :80 block above with /api/* path
 api.lomi.social {
     # Handle WebSocket first
     handle /ws {
