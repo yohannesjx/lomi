@@ -23,10 +23,6 @@ func SetupRoutes(app *fiber.App) {
 	api.Get("/test/auth", handlers.TestAuthEndpoint)
 	api.Post("/test/auth", handlers.TestAuthEndpoint)
 	api.Get("/test/s3", handlers.TestS3Connection)
-	
-	// Test media upload (protected)
-	protected := api.Group("", middleware.AuthMiddleware)
-	protected.Get("/test/media-upload", handlers.TestMediaUpload)
 
 	// Public routes
 	authHandler := handlers.NewAuthHandler(config.Cfg)
@@ -42,10 +38,10 @@ func SetupRoutes(app *fiber.App) {
 	api.Post("/auth/refresh", handlers.RefreshToken) // TODO: Implement
 
 	// Protected routes (require authentication)
-	// Note: protected group is defined above for test endpoints
-	if protected == nil {
-		protected = api.Group("", middleware.AuthMiddleware)
-	}
+	protected := api.Group("", middleware.AuthMiddleware)
+	
+	// Test media upload (protected)
+	protected.Get("/test/media-upload", handlers.TestMediaUpload)
 
 	// User Profile
 	protected.Get("/users/me", handlers.GetMe)
