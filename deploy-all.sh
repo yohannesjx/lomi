@@ -130,21 +130,42 @@ fi
 
 if [ -f "/etc/caddy/Caddyfile" ]; then
     echo "Validating Caddyfile..."
-    if sudo caddy validate --config /etc/caddy/Caddyfile 2>/dev/null; then
+    if timeout 10 sudo caddy validate --config /etc/caddy/Caddyfile 2>/dev/null; then
         echo "✅ Caddyfile is valid"
-        echo "Reloading Caddy..."
-        sudo systemctl reload caddy
-        echo "✅ Caddy reloaded with new configuration"
+        echo "Creating backup of current Caddyfile..."
+        sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.backup 2>/dev/null || true
+        
+        echo "Reloading Caddy (with 30s timeout)..."
+        if timeout 30 sudo systemctl reload caddy; then
+            echo "✅ Caddy reloaded with new configuration"
+            sleep 2
+            # Verify Caddy is still running
+            if sudo systemctl is-active --quiet caddy; then
+                echo "✅ Caddy is running"
+            else
+                echo "⚠️  Caddy reload may have failed, checking status..."
+                sudo systemctl status caddy --no-pager -l | head -10
+            fi
+        else
+            echo "⚠️  Caddy reload timed out or failed"
+            echo "Restoring backup..."
+            if [ -f "/etc/caddy/Caddyfile.backup" ]; then
+                sudo cp /etc/caddy/Caddyfile.backup /etc/caddy/Caddyfile
+                sudo systemctl reload caddy || true
+            fi
+        fi
     else
-        echo "❌ Caddyfile validation failed!"
+        echo "❌ Caddyfile validation failed or timed out!"
         echo "Showing validation errors:"
-        sudo caddy validate --config /etc/caddy/Caddyfile
+        timeout 10 sudo caddy validate --config /etc/caddy/Caddyfile 2>&1 || echo "Validation command timed out"
         echo ""
         echo "⚠️  Keeping old Caddyfile, restoring backup..."
         if [ -f "/etc/caddy/Caddyfile.backup" ]; then
             sudo cp /etc/caddy/Caddyfile.backup /etc/caddy/Caddyfile
-            sudo systemctl reload caddy
+            timeout 30 sudo systemctl reload caddy || true
             echo "✅ Restored previous working configuration"
+        else
+            echo "⚠️  No backup found, keeping current Caddyfile"
         fi
     fi
 else
