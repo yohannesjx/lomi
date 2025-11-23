@@ -47,7 +47,15 @@ export default function App() {
                     if (window.Telegram?.WebApp) {
                         window.Telegram.WebApp.ready();
                         window.Telegram.WebApp.expand();
-                        console.log('✅ Telegram WebApp initialized');
+                        
+                        // Request fullscreen mode for immersive experience
+                        // This removes Telegram UI bars (top and bottom)
+                        if (typeof window.Telegram.WebApp.requestFullscreen === 'function') {
+                            window.Telegram.WebApp.requestFullscreen();
+                            console.log('✅ Telegram WebApp initialized in fullscreen mode');
+                        } else {
+                            console.log('✅ Telegram WebApp initialized');
+                        }
                     }
                 };
                 script.onerror = () => {
@@ -59,7 +67,14 @@ export default function App() {
                 if (window.Telegram?.WebApp) {
                     window.Telegram.WebApp.ready();
                     window.Telegram.WebApp.expand();
-                    console.log('✅ Telegram WebApp initialized (script already loaded)');
+                    
+                    // Request fullscreen mode
+                    if (typeof window.Telegram.WebApp.requestFullscreen === 'function') {
+                        window.Telegram.WebApp.requestFullscreen();
+                        console.log('✅ Telegram WebApp initialized in fullscreen mode (script already loaded)');
+                    } else {
+                        console.log('✅ Telegram WebApp initialized (script already loaded)');
+                    }
                 }
             }
         }

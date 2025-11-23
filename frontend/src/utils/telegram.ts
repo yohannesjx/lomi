@@ -1,6 +1,8 @@
 // Telegram WebApp SDK integration
 // This works in Telegram Mini App environment
 
+import React from 'react';
+
 declare global {
     interface Window {
         Telegram?: {
@@ -106,6 +108,10 @@ declare global {
                 readTextFromClipboard: (callback?: (text: string) => void) => void;
                 requestWriteAccess: (callback?: (granted: boolean) => void) => void;
                 requestContact: (callback?: (granted: boolean) => void) => void;
+                // Fullscreen mode
+                requestFullscreen: () => void;
+                exitFullscreen: () => void;
+                isFullscreen: boolean;
             };
         };
     }
@@ -141,7 +147,7 @@ export const getTelegramUser = () => {
     return webApp?.initDataUnsafe?.user || null;
 };
 
-export const initializeTelegramWebApp = () => {
+export const initializeTelegramWebApp = (options?: { enableFullscreen?: boolean }) => {
     const webApp = getTelegramWebApp();
     if (webApp) {
         // Initialize Telegram WebApp
@@ -154,6 +160,12 @@ export const initializeTelegramWebApp = () => {
         // Set viewport height
         if (webApp.viewportHeight) {
             document.documentElement.style.setProperty('--tg-viewport-height', `${webApp.viewportHeight}px`);
+        }
+        
+        // Request fullscreen mode if enabled (default: true)
+        if (options?.enableFullscreen !== false && typeof webApp.requestFullscreen === 'function') {
+            webApp.requestFullscreen();
+            console.log('✅ Fullscreen mode enabled');
         }
     }
 };
@@ -177,6 +189,108 @@ export const useTelegramHaptic = () => {
         },
         selection: () => {
             webApp?.HapticFeedback.selectionChanged();
+        },
+    };
+};
+
+/**
+ * Request fullscreen mode
+ * Expands the app to cover the entire device screen, removing Telegram UI bars
+ */
+export const requestFullscreen = (): boolean => {
+    const webApp = getTelegramWebApp();
+    if (webApp && typeof webApp.requestFullscreen === 'function') {
+        try {
+            webApp.requestFullscreen();
+            console.log('✅ Fullscreen mode requested');
+            return true;
+        } catch (error) {
+            console.error('Failed to request fullscreen:', error);
+            return false;
+        }
+    }
+    console.warn('⚠️ Fullscreen not available (not in Telegram WebApp)');
+    return false;
+};
+
+/**
+ * Exit fullscreen mode
+ * Returns the app to normal mode with Telegram UI bars visible
+ */
+export const exitFullscreen = (): boolean => {
+    const webApp = getTelegramWebApp();
+    if (webApp && typeof webApp.exitFullscreen === 'function') {
+        try {
+            webApp.exitFullscreen();
+            console.log('✅ Exited fullscreen mode');
+            return true;
+        } catch (error) {
+            console.error('Failed to exit fullscreen:', error);
+            return false;
+        }
+    }
+    console.warn('⚠️ Fullscreen not available (not in Telegram WebApp)');
+    return false;
+};
+
+/**
+ * Check if app is currently in fullscreen mode
+ */
+export const isFullscreen = (): boolean => {
+    const webApp = getTelegramWebApp();
+    return webApp?.isFullscreen || false;
+};
+
+/**
+ * Hook to manage fullscreen mode
+ * Returns functions to toggle fullscreen and check current state
+ */
+export const useTelegramFullscreen = () => {
+    const [isFullscreenMode, setIsFullscreenMode] = React.useState(false);
+
+    React.useEffect(() => {
+        const webApp = getTelegramWebApp();
+        if (webApp) {
+            // Check initial state
+            setIsFullscreenMode(webApp.isFullscreen || false);
+
+            // Listen for fullscreen changes
+            const handleFullscreenChange = () => {
+                setIsFullscreenMode(webApp.isFullscreen || false);
+            };
+
+            // Telegram WebApp doesn't have a direct event for fullscreen changes
+            // We'll check periodically or use viewport changes as a proxy
+            const checkInterval = setInterval(() => {
+                if (webApp.isFullscreen !== isFullscreenMode) {
+                    setIsFullscreenMode(webApp.isFullscreen || false);
+                }
+            }, 500);
+
+            return () => clearInterval(checkInterval);
+        }
+    }, []);
+
+    return {
+        isFullscreen: isFullscreenMode,
+        requestFullscreen: () => {
+            if (requestFullscreen()) {
+                setIsFullscreenMode(true);
+            }
+        },
+        exitFullscreen: () => {
+            if (exitFullscreen()) {
+                setIsFullscreenMode(false);
+            }
+        },
+        toggleFullscreen: () => {
+            if (isFullscreenMode) {
+                exitFullscreen();
+                setIsFullscreenMode(false);
+            } else {
+                requestFullscreen();
+                setIsFullscreenMode(true);
+            }
         },
     };
 };
