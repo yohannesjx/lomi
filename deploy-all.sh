@@ -110,6 +110,9 @@ sudo chmod -R 755 /var/www/lomi-frontend
 echo "✅ Frontend deployed"
 echo ""
 
+# Go back to project root
+cd "$PROJECT_DIR"
+
 # Step 4: Reload Caddy
 echo "🔄 Step 4: Reloading Caddy..."
 sudo systemctl reload caddy
