@@ -192,9 +192,11 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 				TelegramFirstName: tgUser.FirstName,
 				TelegramLastName:  tgUser.LastName,
 				Name:              firstName,
-				Age:               18,                    // Default age (will be updated during onboarding)
-				Gender:            models.GenderOther,    // Default gender (will be updated during onboarding)
-				City:              "Not Set",            // Default city (will be updated during onboarding)
+				Age:               18,                      // Default age (will be updated during onboarding)
+				Gender:            models.GenderOther,      // Default gender (will be updated during onboarding)
+				City:              "Not Set",              // Default city (will be updated during onboarding)
+				Religion:          models.ReligionNone,    // Default religion (will be updated during onboarding)
+				RelationshipGoal:  models.GoalDating,      // Default relationship goal
 				IsActive:          true,
 				// Other fields will be filled during onboarding
 			}
@@ -468,9 +470,11 @@ func (h *AuthHandler) TelegramWidgetLogin(c *fiber.Ctx) error {
 				TelegramFirstName: tgUser.FirstName,
 				TelegramLastName:  tgUser.LastName,
 				Name:              firstName,
-				Age:               18,                    // Default age (will be updated during onboarding)
-				Gender:            models.GenderOther,    // Default gender (will be updated during onboarding)
-				City:              "Not Set",            // Default city (will be updated during onboarding)
+				Age:               18,                      // Default age (will be updated during onboarding)
+				Gender:            models.GenderOther,      // Default gender (will be updated during onboarding)
+				City:              "Not Set",              // Default city (will be updated during onboarding)
+				Religion:          models.ReligionNone,    // Default religion (will be updated during onboarding)
+				RelationshipGoal:  models.GoalDating,      // Default relationship goal
 				IsActive:          true,
 			}
 			if err := database.DB.Create(&user).Error; err != nil {
