@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 	"lomi-backend/config"
 	"lomi-backend/internal/database"
 	"lomi-backend/internal/models"
@@ -20,7 +21,7 @@ func UploadMedia(c *fiber.Ctx) error {
 	userIDStr := claims["user_id"].(string)
 	userID, _ := uuid.Parse(userIDStr)
 
-	fmt.Printf("📸 UploadMedia request - UserID: %s\n", userID)
+	log.Printf("📸 UploadMedia request - UserID: %s", userID)
 
 	var req struct {
 		MediaType      string `json:"media_type"` // "photo" or "video"
@@ -30,11 +31,11 @@ func UploadMedia(c *fiber.Ctx) error {
 		DisplayOrder   int    `json:"display_order"`
 	}
 	if err := c.BodyParser(&req); err != nil {
-		fmt.Printf("❌ Failed to parse request body: %v\n", err)
+		log.Printf("❌ Failed to parse request body: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request", "details": err.Error()})
 	}
 
-	fmt.Printf("📸 Request data - MediaType: %s, FileKey: %s, DisplayOrder: %d\n", 
+	log.Printf("📸 Request data - MediaType: %s, FileKey: %s, DisplayOrder: %d", 
 		req.MediaType, req.FileKey, req.DisplayOrder)
 
 	// Validate media type
@@ -75,14 +76,14 @@ func UploadMedia(c *fiber.Ctx) error {
 	}
 
 	if err := database.DB.Create(&media).Error; err != nil {
-		fmt.Printf("❌ Failed to create media record: %v\n", err)
+		log.Printf("❌ Failed to create media record: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create media record",
 			"details": err.Error(),
 		})
 	}
 
-	fmt.Printf("✅ Media record created successfully - ID: %s, FileKey: %s\n", media.ID, media.URL)
+	log.Printf("✅ Media record created successfully - ID: %s, FileKey: %s", media.ID, media.URL)
 	return c.Status(fiber.StatusCreated).JSON(media)
 }
 
@@ -215,13 +216,13 @@ func GetPresignedUploadURL(c *fiber.Ctx) error {
 	}
 
 	// Log S3 configuration
-	fmt.Printf("📤 Generating upload URL - UserID: %s, MediaType: %s, Bucket: %s\n", userID, mediaType, bucket)
-	fmt.Printf("📤 S3 Config - Endpoint: %s, Region: %s, UseSSL: %v\n", 
+	log.Printf("📤 Generating upload URL - UserID: %s, MediaType: %s, Bucket: %s", userID, mediaType, bucket)
+	log.Printf("📤 S3 Config - Endpoint: %s, Region: %s, UseSSL: %v", 
 		config.Cfg.S3Endpoint, config.Cfg.S3Region, config.Cfg.S3UseSSL)
 
 	// Check if S3 client is initialized
 	if database.S3Client == nil {
-		fmt.Printf("❌ S3Client is nil - S3 not connected!\n")
+		log.Printf("❌ S3Client is nil - S3 not connected!")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "S3 storage not configured",
 			"details": "S3Client is not initialized",
@@ -232,21 +233,21 @@ func GetPresignedUploadURL(c *fiber.Ctx) error {
 	fileID := uuid.New()
 	key := fmt.Sprintf("users/%s/%s/%s%s", userID.String(), mediaType, fileID.String(), ext)
 
-	fmt.Printf("📤 Generated file key: %s\n", key)
+	log.Printf("📤 Generated file key: %s", key)
 
 	// Generate pre-signed URL (expires in 1 hour)
 	ctx := context.Background()
 	expiresIn := 1 * time.Hour
 	uploadURL, err := database.GeneratePresignedUploadURL(ctx, bucket, key, expiresIn)
 	if err != nil {
-		fmt.Printf("❌ Failed to generate presigned URL: %v\n", err)
+		log.Printf("❌ Failed to generate presigned URL: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to generate upload URL",
 			"details": err.Error(),
 		})
 	}
 
-	fmt.Printf("✅ Generated upload URL successfully (length: %d)\n", len(uploadURL))
+	log.Printf("✅ Generated upload URL successfully (length: %d)", len(uploadURL))
 
 	return c.JSON(fiber.Map{
 		"upload_url": uploadURL,
