@@ -124,8 +124,11 @@ type User struct {
 	// 6 = video recorded (optional)
 	// 7 = bio & interests done
 	// 8 = completed
-	OnboardingStep     int  `gorm:"default:0;check:onboarding_step >= 0 AND onboarding_step <= 8"`
+	OnboardingStep      int  `gorm:"default:0;check:onboarding_step >= 0 AND onboarding_step <= 8"`
 	OnboardingCompleted bool `gorm:"default:false;index"`
+
+	// Tutorial & First-Time Experience
+	HasSeenSwipeTutorial bool `gorm:"default:false;index"`
 
 	// Timestamps
 	CreatedAt time.Time      `gorm:"type:timestamptz;default:now()"`
