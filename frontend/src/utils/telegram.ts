@@ -132,35 +132,52 @@ export const getTelegramInitData = (): string | null => {
     if (webApp) {
         // initData might be available directly
         if (webApp.initData && webApp.initData.length > 0) {
+            console.log('✅ Found initData in webApp.initData');
             return webApp.initData;
         }
         
-        // Sometimes initData is in initDataUnsafe
-        // Try to reconstruct from user data if available
-        if (webApp.initDataUnsafe?.user) {
-            // Note: This is a fallback - actual initData is preferred
-            console.warn('⚠️ Using initDataUnsafe - this may not work for authentication');
-        }
+        // In Telegram WebApp 6.0+, initData might be empty string initially
+        // Check if we can get it from the URL or other sources
+        console.log('⚠️ webApp.initData is empty, checking other sources...');
     }
     
-    // Fallback: Try to get from window.location for web platform
+    // Try to get from window.location (Telegram passes it in URL)
     if (typeof window !== 'undefined' && window.location) {
+        // Check query parameters
         const params = new URLSearchParams(window.location.search);
         const tgWebAppData = params.get('tgWebAppData');
         if (tgWebAppData) {
+            console.log('✅ Found initData in URL query params');
             return decodeURIComponent(tgWebAppData);
         }
         
-        // Also check hash
+        // Check hash
         const hash = window.location.hash;
         if (hash.includes('tgWebAppData=')) {
             const match = hash.match(/tgWebAppData=([^&]+)/);
             if (match) {
+                console.log('✅ Found initData in URL hash');
                 return decodeURIComponent(match[1]);
             }
         }
+        
+        // Try to get from window.location.href (full URL)
+        const fullUrl = window.location.href;
+        const urlMatch = fullUrl.match(/[?&#]tgWebAppData=([^&]+)/);
+        if (urlMatch) {
+            console.log('✅ Found initData in full URL');
+            return decodeURIComponent(urlMatch[1]);
+        }
     }
     
+    // Last resort: Try to get from Telegram WebApp's internal state
+    // Some versions store it differently
+    if (webApp && (webApp as any).initDataRaw) {
+        console.log('✅ Found initData in initDataRaw');
+        return (webApp as any).initDataRaw;
+    }
+    
+    console.warn('❌ initData not found in any source');
     return null;
 };
 
@@ -221,17 +238,18 @@ export const useTelegramHaptic = () => {
  */
 export const requestFullscreen = (): boolean => {
     const webApp = getTelegramWebApp();
-    if (webApp && typeof webApp.requestFullscreen === 'function') {
+    if (webApp && webApp.requestFullscreen && typeof webApp.requestFullscreen === 'function') {
         try {
             webApp.requestFullscreen();
             console.log('✅ Fullscreen mode requested');
             return true;
         } catch (error) {
-            console.error('Failed to request fullscreen:', error);
+            // Method might not be supported in this version
+            console.warn('⚠️ Fullscreen not supported in this Telegram WebApp version:', error);
             return false;
         }
     }
-    console.warn('⚠️ Fullscreen not available (not in Telegram WebApp)');
+    console.warn('⚠️ Fullscreen not available (method not supported or not in Telegram WebApp)');
     return false;
 };
 

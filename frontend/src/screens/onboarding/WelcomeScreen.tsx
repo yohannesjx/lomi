@@ -61,35 +61,28 @@ export const WelcomeScreen = ({ navigation }: any) => {
                 const isInTelegram = webApp !== null || 
                     (typeof window !== 'undefined' && 
                      (window.location.search.includes('tgWebApp') || 
+                      window.location.hash.includes('tgWebApp') ||
                       navigator.userAgent.includes('Telegram')));
                 
                 if (!isInTelegram) {
                     const errorMsg = 'Please open this app from Telegram. Go to your bot and click the menu button, then select the Mini App.';
                     console.error('❌', errorMsg);
-                    
-                    // Use showConfirm instead of showAlert (more compatible)
-                    if (webApp && typeof webApp.showConfirm === 'function') {
-                        webApp.showConfirm(errorMsg, (confirmed) => {
-                            if (confirmed) {
-                                // User confirmed, but we still can't proceed
-                                console.log('User acknowledged error');
-                            }
-                        });
-                    } else {
-                        alert(errorMsg);
-                    }
+                    alert(errorMsg);
                     return;
                 }
                 
                 // We're in Telegram but initData is missing
-                const errorMsg = 'Telegram authentication data is missing. Please try closing and reopening the app.';
+                // This can happen if the app is opened in a browser or if Telegram hasn't provided initData yet
+                const errorMsg = 'Telegram authentication data is missing. This might happen if:\n\n1. The app was opened in a browser instead of Telegram\n2. The Mini App URL is incorrect in BotFather\n3. Telegram needs to be updated\n\nPlease try:\n- Closing and reopening from Telegram\n- Checking BotFather Mini App settings\n- Updating Telegram app';
                 console.error('❌', errorMsg);
-                
-                if (webApp && typeof webApp.showConfirm === 'function') {
-                    webApp.showConfirm(errorMsg);
-                } else {
-                    alert(errorMsg);
-                }
+                console.error('Debug info:', {
+                    webAppExists: !!webApp,
+                    userAgent: navigator.userAgent,
+                    url: window.location.href,
+                    search: window.location.search,
+                    hash: window.location.hash,
+                });
+                alert(errorMsg);
                 return;
             }
             
@@ -106,22 +99,23 @@ export const WelcomeScreen = ({ navigation }: any) => {
         } catch (error: any) {
             console.error('Login error:', error);
             
-            // Show error message (use showConfirm instead of showAlert for compatibility)
+            // Show error message (use alert for maximum compatibility)
             const webApp = getTelegramWebApp();
             const errorMsg = error?.message || 'Login failed. Please try again.';
             
-            if (webApp) {
-                // Try showConfirm first (more compatible)
-                if (typeof webApp.showConfirm === 'function') {
-                    webApp.showConfirm(errorMsg);
-                } else if (typeof webApp.showAlert === 'function') {
-                    webApp.showAlert(errorMsg);
-                } else {
-                    alert(errorMsg);
-                }
-            } else {
-                alert(errorMsg);
-            }
+            // Use alert for now - showConfirm/showAlert have compatibility issues in some versions
+            alert(errorMsg);
+            
+            // Optional: Try to use Telegram's native alert if available and working
+            // if (webApp && typeof webApp.showAlert === 'function') {
+            //     try {
+            //         webApp.showAlert(errorMsg);
+            //     } catch (e) {
+            //         alert(errorMsg);
+            //     }
+            // } else {
+            //     alert(errorMsg);
+            // }
         }
     };
 
