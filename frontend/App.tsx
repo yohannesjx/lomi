@@ -19,6 +19,7 @@ import { ProfileSetupScreen } from './src/screens/onboarding/ProfileSetupScreen'
 import { GenderPreferenceScreen } from './src/screens/onboarding/GenderPreferenceScreen';
 import { PhotoUploadScreen } from './src/screens/onboarding/PhotoUploadScreen';
 import { InterestsScreen } from './src/screens/onboarding/InterestsScreen';
+import { AuthGuard } from './src/components/AuthGuard';
 
 import { MainTabNavigator } from './src/navigation/MainTabNavigator';
 import { ChatDetailScreen } from './src/screens/chat/ChatDetailScreen';
@@ -69,14 +70,12 @@ export default function App() {
             }
         }
 
-        // Load stored tokens on app start
-        const { loadTokens } = require('./src/store/authStore').useAuthStore.getState();
-        loadTokens();
     }, []);
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
+                <AuthGuard>
                 <NavigationContainer theme={{
                 dark: true,
                 colors: {
@@ -152,6 +151,7 @@ export default function App() {
                     <Stack.Screen name="ExploreDetail" component={ExploreDetailScreen} />
                 </Stack.Navigator>
             </NavigationContainer>
+            </AuthGuard>
         </SafeAreaProvider>
         </GestureHandlerRootView>
     );

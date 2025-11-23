@@ -11,7 +11,7 @@ interface AuthState {
     login: (initData: string) => Promise<void>;
     logout: () => Promise<void>;
     setTokens: (tokens: { accessToken: string; refreshToken: string }) => Promise<void>;
-    loadTokens: () => Promise<void>;
+    loadTokens: () => Promise<boolean>;
 }
 
 const TOKEN_KEY = 'lomi_access_token';
@@ -75,18 +75,25 @@ export const useAuthStore = create<AuthState>((set) => ({
             const userStr = await storage.getItem(USER_KEY);
             
             if (accessToken && refreshToken && userStr) {
+                const user = JSON.parse(userStr);
                 set({
                     accessToken,
                     refreshToken,
-                    user: JSON.parse(userStr),
+                    user,
                     isAuthenticated: true,
                     isLoading: false,
                 });
+                console.log('✅ Loaded stored tokens and user data');
+                return true;
             } else {
                 set({ isLoading: false });
+                console.log('ℹ️ No stored tokens found');
+                return false;
             }
         } catch (error) {
+            console.error('❌ Error loading tokens:', error);
             set({ isLoading: false });
+            return false;
         }
     },
 }));
