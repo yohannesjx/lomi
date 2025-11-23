@@ -174,6 +174,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             }
 
             // 3. Update photo data with file key (success)
+            console.log('✅ Upload completed successfully, setting fileKey:', file_key);
             const newPhotos = [...photos];
             newPhotos[index] = {
                 uri: localUri,
@@ -181,6 +182,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 isUploading: false,
             };
             setPhotos(newPhotos);
+            console.log('✅ Photo state updated, ready for media record creation');
         } catch (error: any) {
             console.error('Upload error details:', {
                 error,
