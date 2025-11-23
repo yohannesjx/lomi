@@ -135,23 +135,31 @@ if [ -f "/etc/caddy/Caddyfile" ]; then
         echo "Creating backup of current Caddyfile..."
         sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.backup 2>/dev/null || true
         
-        echo "Reloading Caddy (with 30s timeout)..."
-        if timeout 30 sudo systemctl reload caddy; then
-            echo "✅ Caddy reloaded with new configuration"
-            sleep 2
-            # Verify Caddy is still running
+        echo "Reloading Caddy..."
+        # Use restart instead of reload to avoid hangs
+        # Reload can hang if SSL cert acquisition is in progress
+        if timeout 15 sudo systemctl restart caddy; then
+            echo "✅ Caddy restarted with new configuration"
+            sleep 3
+            # Verify Caddy is running
             if sudo systemctl is-active --quiet caddy; then
                 echo "✅ Caddy is running"
             else
-                echo "⚠️  Caddy reload may have failed, checking status..."
+                echo "⚠️  Caddy restart may have failed, checking status..."
                 sudo systemctl status caddy --no-pager -l | head -10
+                echo "Attempting to restore backup..."
+                if [ -f "/etc/caddy/Caddyfile.backup" ]; then
+                    sudo cp /etc/caddy/Caddyfile.backup /etc/caddy/Caddyfile
+                    sudo systemctl restart caddy || true
+                fi
             fi
         else
-            echo "⚠️  Caddy reload timed out or failed"
-            echo "Restoring backup..."
+            echo "⚠️  Caddy restart timed out or failed"
+            echo "This usually means SSL certificate acquisition is hanging"
+            echo "Restoring backup and trying again..."
             if [ -f "/etc/caddy/Caddyfile.backup" ]; then
                 sudo cp /etc/caddy/Caddyfile.backup /etc/caddy/Caddyfile
-                sudo systemctl reload caddy || true
+                sudo systemctl restart caddy || sudo systemctl start caddy || true
             fi
         fi
     else

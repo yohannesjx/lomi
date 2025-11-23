@@ -1,7 +1,10 @@
 # Caddyfile for Lomi Social
 # Server IP: 152.53.87.200
+# 
+# NOTE: If Caddy hangs on reload, it's likely trying to get SSL certificates.
+# Solution: Use 'systemctl restart caddy' instead of 'reload'
 
-# HTTP-only block for IP address (no SSL)
+# HTTP-only block for IP address (no SSL - won't hang)
 :80 {
     # Handle preflight OPTIONS requests FIRST
     @options {
@@ -60,7 +63,13 @@
 }
 
 # Domain-based block (automatic HTTPS/SSL)
+# WARNING: This can hang if DNS isn't ready or Let's Encrypt is rate-limited
+# If reload hangs, comment out this block temporarily
 lomi.social, local.lomi {
+    # Use local certificates to avoid Let's Encrypt delays
+    # Remove this line once DNS is stable
+    local_certs
+    
     # Handle preflight OPTIONS requests FIRST
     @options {
         method OPTIONS
@@ -83,6 +92,7 @@ lomi.social, local.lomi {
             header_up X-Real-IP {remote}
             header_up X-Forwarded-For {remote}
             header_up X-Forwarded-Proto {scheme}
+            # NO health checks - they can cause hangs if backend isn't ready
         }
     }
     
