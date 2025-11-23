@@ -13,6 +13,21 @@
 # HTTP-only block for IP address (no SSL)
 # Use this when accessing via IP: http://152.53.87.200
 :80 {
+    # Handle preflight OPTIONS requests FIRST
+    @options {
+        method OPTIONS
+        path /api/*
+    }
+    handle @options {
+        header {
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+            Access-Control-Max-Age "3600"
+        }
+        respond 204
+    }
+    
     # Handle API requests
     handle /api/* {
         reverse_proxy localhost:8080 {
@@ -56,7 +71,22 @@
 # Domain-based blocks (automatic HTTPS/SSL)
 # Use this when DNS is configured: https://lomi.social
 lomi.social, local.lomi {
-    # Handle API requests first (before file_server)
+    # Handle preflight OPTIONS requests FIRST (before API reverse_proxy)
+    @options {
+        method OPTIONS
+        path /api/*
+    }
+    handle @options {
+        header {
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+            Access-Control-Max-Age "3600"
+        }
+        respond 204
+    }
+    
+    # Handle API requests (after OPTIONS)
     handle /api/* {
         reverse_proxy localhost:8080 {
             header_up Host {host}
@@ -77,21 +107,6 @@ lomi.social, local.lomi {
         Access-Control-Allow-Origin "*"
         Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
         Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-    }
-    
-    # Handle preflight requests
-    @options {
-        method OPTIONS
-        path /api/*
-    }
-    handle @options {
-        header {
-            Access-Control-Allow-Origin "*"
-            Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-            Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-            Access-Control-Max-Age "3600"
-        }
-        respond 204
     }
     
     # Serve static files (if hosting frontend on server)

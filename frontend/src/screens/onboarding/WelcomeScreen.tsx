@@ -159,22 +159,32 @@ export const WelcomeScreen = ({ navigation }: any) => {
                     `- Platform: ${debugInfo.platform}\n` +
                     `- Version: ${debugInfo.version}\n` +
                     `- Has initData: ${debugInfo.hasInitData}\n` +
-                    `- User Agent: ${debugInfo.userAgent.substring(0, 50)}...\n\n` +
+                    `- User Agent: ${debugInfo.userAgent.substring(0, 50)}...\n` +
+                    `- Is in Telegram Browser: ${isInTelegramBrowser}\n\n` +
                     `Possible causes:\n` +
-                    `1. Mini App URL in BotFather is incorrect\n` +
-                    `2. App opened in external browser (not Telegram's in-app browser)\n` +
+                    `1. App opened in Safari/external browser (NOT Telegram's in-app browser)\n` +
+                    `2. Mini App URL in BotFather is incorrect\n` +
                     `3. Telegram version too old\n` +
                     `4. Bot not properly configured\n\n` +
-                    `Solutions:\n` +
-                    `1. Check BotFather: /myapps → Verify Web App URL is: https://lomi.social/ (trailing slash is OK)\n` +
-                    `2. Make sure you open from Telegram bot menu (not browser)\n` +
-                    `3. Update Telegram app\n` +
-                    `4. Try closing and reopening the Mini App`;
+                    `✅ SOLUTIONS:\n` +
+                    `1. Open TELEGRAM APP (not Safari)\n` +
+                    `2. Find your bot in Telegram\n` +
+                    `3. Tap the bot menu (☰) at bottom\n` +
+                    `4. Tap "Mini App" from the menu\n` +
+                    `5. Check BotFather: /myapps → Verify URL is: https://lomi.social/\n\n` +
+                    `The app MUST be opened from Telegram's in-app browser!`;
                 
                 console.error('❌', errorMsg);
                 console.error('Full debug info:', JSON.stringify(debugInfo, null, 2));
                 alert(errorMsg);
-                return;
+                
+                // Hide MainButton to prevent retry
+                const webApp = getTelegramWebApp();
+                if (webApp?.MainButton.isVisible) {
+                    webApp.MainButton.hide();
+                }
+                
+                return; // CRITICAL: Return early to prevent API call
             }
             
             console.log('✅ InitData found, attempting login...');
