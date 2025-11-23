@@ -53,18 +53,22 @@ redis_client = redis.Redis(
     decode_responses=False  # Keep binary for JSON
 )
 
-# Initialize NSFW model (Qwen/Qwen2-VL-7B-Instruct)
-logger.info("Loading Qwen NSFW model...")
+# Initialize NSFW model (FalAI/nsfw_image_detection - proper image classification model)
+logger.info("Loading NSFW detection model...")
 try:
-    nsfw_processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-7B-Instruct")
-    nsfw_model = AutoModelForCausalLM.from_pretrained(
-        "Qwen/Qwen2-VL-7B-Instruct",
+    from transformers import AutoImageProcessor, AutoModelForImageClassification
+    
+    nsfw_processor = AutoImageProcessor.from_pretrained("FalAI/nsfw_image_detection")
+    nsfw_model = AutoModelForImageClassification.from_pretrained(
+        "FalAI/nsfw_image_detection",
         torch_dtype=torch.float16,
         device_map="auto"
     )
+    nsfw_model.eval()  # Set to evaluation mode
     logger.info("✅ NSFW model loaded successfully")
 except Exception as e:
     logger.error(f"❌ Failed to load NSFW model: {e}")
+    logger.warning("⚠️ Continuing without NSFW detection - photos will be approved by default")
     nsfw_model = None
     nsfw_processor = None
 
