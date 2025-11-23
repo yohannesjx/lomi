@@ -31,16 +31,22 @@ export const WelcomeScreen = ({ navigation }: any) => {
 
             await login(initData);
 
-            // Navigation is handled by AuthGuard or we can do it here explicitly
-            // But since AuthGuard wraps this, updating the store (via login) might trigger a re-render/redirect
-            // However, AuthGuard only redirects on mount or if we manually check.
-            // Let's manually navigate to be safe, checking the user state.
-
             const user = useAuthStore.getState().user;
+            console.log('✅ User logged in successfully:', user?.id);
+            console.log('📊 Onboarding status:', user?.onboarding_completed);
+
             if (user?.onboarding_completed) {
-                navigation.replace('Main');
+                console.log('➡️ Navigating to Main');
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Main' }],
+                });
             } else {
-                navigation.replace('Onboarding');
+                console.log('➡️ Navigating to Onboarding');
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Onboarding' }],
+                });
             }
 
         } catch (error: any) {

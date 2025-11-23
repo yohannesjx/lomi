@@ -3,7 +3,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { useOnboardingStore } from '../store/onboardingStore';
 import { useAuthStore } from '../store/authStore';
 import { OnboardingProgressBar } from '../components/OnboardingProgressBar';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { COLORS } from '../theme/colors';
 
 // ToastAndroid is only available on Android
 let ToastAndroid: any = null;
@@ -99,7 +100,11 @@ export const OnboardingNavigator: React.FC<{ navigation: any }> = ({ navigation 
 
     // Don't render until we know the initial route
     if (!initialRoute || isLoading) {
-        return null;
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+            </View>
+        );
     }
 
     const currentStep = user?.onboarding_step ?? onboardingStep ?? 0;
@@ -143,6 +148,12 @@ export const OnboardingNavigator: React.FC<{ navigation: any }> = ({ navigation 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.background,
     },
 });
 
