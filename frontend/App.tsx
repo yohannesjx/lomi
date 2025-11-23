@@ -37,17 +37,31 @@ export default function App() {
     useEffect(() => {
         // Inject Telegram WebApp script for Web platform
         if (Platform.OS === 'web' && typeof document !== 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://telegram.org/js/telegram-web-app.js';
-            script.async = true;
-            script.onload = () => {
-                // Initialize after script loads
+            // Check if script already exists
+            if (!document.querySelector('script[src="https://telegram.org/js/telegram-web-app.js"]')) {
+                const script = document.createElement('script');
+                script.src = 'https://telegram.org/js/telegram-web-app.js';
+                script.async = true;
+                script.onload = () => {
+                    // Initialize after script loads
+                    if (window.Telegram?.WebApp) {
+                        window.Telegram.WebApp.ready();
+                        window.Telegram.WebApp.expand();
+                        console.log('✅ Telegram WebApp initialized');
+                    }
+                };
+                script.onerror = () => {
+                    console.warn('⚠️ Failed to load Telegram WebApp script');
+                };
+                document.body.appendChild(script);
+            } else {
+                // Script already loaded, initialize immediately
                 if (window.Telegram?.WebApp) {
                     window.Telegram.WebApp.ready();
                     window.Telegram.WebApp.expand();
+                    console.log('✅ Telegram WebApp initialized (script already loaded)');
                 }
-            };
-            document.body.appendChild(script);
+            }
         }
 
         // Load stored tokens on app start

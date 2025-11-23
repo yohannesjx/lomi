@@ -4,31 +4,34 @@ import { storage } from '../utils/storage';
 import { useAuthStore } from '../store/authStore';
 
 // API URL configuration
-// For Telegram Mini App: Must use HTTPS and publicly accessible URL (use ngrok for local dev)
+// For Telegram Mini App: Must use HTTPS and publicly accessible URL
 // Set EXPO_PUBLIC_API_URL environment variable to override
 const getApiUrl = () => {
-    // Check for environment variable (useful for ngrok URLs)
+    // Check for environment variable (useful for local dev with ngrok)
     if (process.env.EXPO_PUBLIC_API_URL) {
         return process.env.EXPO_PUBLIC_API_URL;
     }
     
-    // Development URLs
-    if (__DEV__) {
+    // Check if we're running on localhost (true local dev)
+    const isLocalhost = typeof window !== 'undefined' && 
+        (window.location.hostname === 'localhost' || 
+         window.location.hostname === '127.0.0.1' ||
+         window.location.hostname === '10.0.2.2');
+    
+    // Development URLs (only for true localhost)
+    if (__DEV__ && isLocalhost) {
         if (Platform.OS === 'android') {
             return 'http://10.0.2.2:8080/api/v1'; // Android emulator
         }
         return 'http://localhost:8080/api/v1'; // Local development
     }
     
-    // Production URL
+    // Production URL (for deployed app or when opened from Telegram)
     return 'https://api.lomi.social/api/v1';
 };
 
-const DEV_API_URL = getApiUrl();
-const PROD_API_URL = 'https://api.lomi.social/api/v1';
-
 export const api = axios.create({
-    baseURL: __DEV__ ? DEV_API_URL : PROD_API_URL,
+    baseURL: getApiUrl(),
     headers: {
         'Content-Type': 'application/json',
     },
