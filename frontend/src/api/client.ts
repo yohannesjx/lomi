@@ -27,35 +27,15 @@ const getApiUrl = () => {
     }
 
     // Production URL (for deployed app or when opened from Telegram)
+    // Use relative path - Caddy will handle routing to backend
+    // This works for all domains: lomi.social, ngrok, IP, etc.
     if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        const protocol = window.location.protocol;
-
-        // If on lomi.social or IP, use relative path (Caddy handles /api/* routing)
-        if (hostname === 'lomi.social' || hostname === '152.53.87.200' || hostname.includes('lomi.social')) {
-            // Use relative path - Caddy will route /api/* to backend
-            return '/api/v1';
-        }
-
-        // If on api.lomi.social, use current origin
-        if (hostname === 'api.lomi.social' || hostname.includes('api.lomi.social')) {
-            return `${protocol}//${hostname}/api/v1`;
-        }
-    }
-
-    // Fallback: Try domain first, then IP
-    // Check if we can use HTTPS (if DNS is configured)
-    // const apiDomain = 'https://api.lomi.social/api/v1';
-    // const apiIP = 'http://152.53.87.200/api/v1';
-
-    // If we are in a browser environment (not localhost), use relative path
-    // This handles ngrok, custom domains, etc. automatically
-    if (typeof window !== 'undefined') {
+        console.log('🌐 Using relative API path for production');
         return '/api/v1';
     }
 
     // Fallback for non-browser environments (e.g. tests)
-    return 'http://152.53.87.200/api/v1';
+    return 'https://lomi.social/api/v1';
 };
 
 const API_BASE_URL = getApiUrl();
@@ -77,14 +57,17 @@ if (typeof window !== 'undefined') {
 // Add interceptor to inject token
 api.interceptors.request.use(
     async (config) => {
-        const token = await storage.getItem('lomi_access_token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        } else if (__DEV__) {
-            // In dev mode, log warning but don't block requests
-            // This allows testing UI without authentication
-            console.warn('⚠️ No auth token found. API calls will fail with 401.');
-            console.warn('💡 To test with auth, log in via WelcomeScreen first.');
+        // Don't overwrite Authorization header if it's already set (e.g., for Telegram login)
+        if (!config.headers.Authorization) {
+            const token = await storage.getItem('lomi_access_token');
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            } else if (__DEV__) {
+                // In dev mode, log warning but don't block requests
+                // This allows testing UI without authentication
+                console.warn('⚠️ No auth token found. API calls will fail with 401.');
+                console.warn('💡 To test with auth, log in via WelcomeScreen first.');
+            }
         }
         return config;
     },
@@ -99,9 +82,14 @@ api.interceptors.response.use(
 
         // Log network errors for debugging
         if (!error.response) {
+            const fullUrl = error.config?.baseURL
+                ? `${error.config.baseURL}${error.config.url || ''}`
+                : error.config?.url || 'unknown';
+
             console.error('❌ Network Error:', {
                 message: error.message,
                 code: error.code,
+                fullUrl: fullUrl,
                 config: {
                     url: error.config?.url,
                     baseURL: error.config?.baseURL,
@@ -113,10 +101,18 @@ api.interceptors.response.use(
             if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
                 console.error('💡 Network Error - Possible causes:');
                 console.error('   1. Backend server is down');
-                console.error('   2. API URL is incorrect:', API_BASE_URL);
+                console.error('   2. API URL is incorrect:', fullUrl);
                 console.error('   3. CORS issue');
                 console.error('   4. DNS not resolving');
                 console.error('   5. Firewall blocking request');
+                console.error('   6. SSL certificate issue');
+                console.error('   7. Request blocked by browser/Telegram');
+
+                // Try to provide more specific error
+                if (fullUrl.includes('localhost') || fullUrl.includes('127.0.0.1')) {
+                    console.error('⚠️ Using localhost URL on mobile - this will NOT work!');
+                    console.error('💡 Use production URL: https://lomi.social/api/v1');
+                }
             }
         }
 

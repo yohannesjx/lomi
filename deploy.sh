@@ -64,7 +64,14 @@ if [ -f "backend/database/migration_add_reveal_transaction_type.sql" ]; then
     docker-compose -f docker-compose.prod.yml exec -T postgres psql -U ${DB_USER:-lomi} -d ${DB_NAME:-lomi_db} < backend/database/migration_add_reveal_transaction_type.sql 2>/dev/null || true
 fi
 
-# Reload Caddy
+# Update and reload Caddy
+echo "🔄 Updating Caddy configuration..."
+if [ -f "Caddyfile" ]; then
+    sudo cp Caddyfile /etc/caddy/Caddyfile
+    if sudo caddy validate --config /etc/caddy/Caddyfile 2>/dev/null; then
+        echo "✅ Caddyfile is valid"
+    fi
+fi
 echo "🔄 Reloading Caddy..."
 sudo systemctl reload caddy 2>/dev/null || true
 

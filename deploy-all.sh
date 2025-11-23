@@ -114,10 +114,42 @@ echo ""
 # Go back to project root
 cd "$PROJECT_DIR"
 
-# Step 4: Reload Caddy
-echo "🔄 Step 4: Reloading Caddy..."
-sudo systemctl reload caddy
-echo "✅ Caddy reloaded"
+# Step 4: Update and reload Caddy
+echo "🔄 Step 4: Updating Caddy configuration..."
+
+# Check if fixed Caddyfile exists (from the fix)
+if [ -f "Caddyfile.fixed" ]; then
+    echo "📝 Found Caddyfile.fixed - using the fixed version"
+    sudo cp Caddyfile.fixed /etc/caddy/Caddyfile
+elif [ -f "Caddyfile" ]; then
+    echo "📝 Using Caddyfile from repo"
+    sudo cp Caddyfile /etc/caddy/Caddyfile
+else
+    echo "⚠️  No Caddyfile found in repo, keeping existing configuration"
+fi
+
+if [ -f "/etc/caddy/Caddyfile" ]; then
+    echo "Validating Caddyfile..."
+    if sudo caddy validate --config /etc/caddy/Caddyfile 2>/dev/null; then
+        echo "✅ Caddyfile is valid"
+        echo "Reloading Caddy..."
+        sudo systemctl reload caddy
+        echo "✅ Caddy reloaded with new configuration"
+    else
+        echo "❌ Caddyfile validation failed!"
+        echo "Showing validation errors:"
+        sudo caddy validate --config /etc/caddy/Caddyfile
+        echo ""
+        echo "⚠️  Keeping old Caddyfile, restoring backup..."
+        if [ -f "/etc/caddy/Caddyfile.backup" ]; then
+            sudo cp /etc/caddy/Caddyfile.backup /etc/caddy/Caddyfile
+            sudo systemctl reload caddy
+            echo "✅ Restored previous working configuration"
+        fi
+    fi
+else
+    echo "⚠️  No Caddyfile found, skipping Caddy update"
+fi
 echo ""
 
 # Summary
