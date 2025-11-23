@@ -179,23 +179,35 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
-			// Create new user
+			// Create new user with required fields
+			// Note: Age, Gender, and City are required by DB schema but will be updated during onboarding
+			firstName := tgUser.FirstName
+			if firstName == "" {
+				firstName = "User" // Fallback if first name is empty
+			}
+			
 			user = models.User{
 				TelegramID:        tgUser.ID,
 				TelegramUsername:  tgUser.Username,
 				TelegramFirstName: tgUser.FirstName,
 				TelegramLastName:  tgUser.LastName,
-				Name:              tgUser.FirstName, // Default name
+				Name:              firstName,
+				Age:               18,                    // Default age (will be updated during onboarding)
+				Gender:            models.GenderOther,    // Default gender (will be updated during onboarding)
+				City:              "Not Set",            // Default city (will be updated during onboarding)
 				IsActive:          true,
 				// Other fields will be filled during onboarding
 			}
 			if err := database.DB.Create(&user).Error; err != nil {
 				log.Printf("❌ Failed to create user: %v", err)
+				log.Printf("❌ User data: TelegramID=%d, Name=%s, Age=%d, Gender=%s, City=%s", 
+					user.TelegramID, user.Name, user.Age, user.Gender, user.City)
 				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 					"error":   "Could not create user",
 					"details": err.Error(),
 				})
 			}
+			log.Printf("✅ Created new user: ID=%s, TelegramID=%d", user.ID, user.TelegramID)
 		} else {
 			log.Printf("❌ Database error: %v", result.Error)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -419,18 +431,34 @@ func (h *AuthHandler) TelegramWidgetLogin(c *fiber.Ctx) error {
 	
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
-			// Create new user
+			// Create new user with required fields
+			// Note: Age, Gender, and City are required by DB schema but will be updated during onboarding
+			firstName := tgUser.FirstName
+			if firstName == "" {
+				firstName = "User" // Fallback if first name is empty
+			}
+			
 			user = models.User{
 				TelegramID:        tgUser.ID,
 				TelegramUsername:  tgUser.Username,
 				TelegramFirstName: tgUser.FirstName,
 				TelegramLastName:  tgUser.LastName,
-				Name:              tgUser.FirstName,
+				Name:              firstName,
+				Age:               18,                    // Default age (will be updated during onboarding)
+				Gender:            models.GenderOther,    // Default gender (will be updated during onboarding)
+				City:              "Not Set",            // Default city (will be updated during onboarding)
 				IsActive:          true,
 			}
 			if err := database.DB.Create(&user).Error; err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not create user"})
+				log.Printf("❌ Failed to create user (widget): %v", err)
+				log.Printf("❌ User data: TelegramID=%d, Name=%s, Age=%d, Gender=%s, City=%s", 
+					user.TelegramID, user.Name, user.Age, user.Gender, user.City)
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error":   "Could not create user",
+					"details": err.Error(),
+				})
 			}
+			log.Printf("✅ Created new user (widget): ID=%s, TelegramID=%d", user.ID, user.TelegramID)
 		} else {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database error"})
 		}
