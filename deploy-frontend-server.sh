@@ -25,11 +25,22 @@ fi
 cd "$PROJECT_DIR/frontend"
 echo "📁 Using project directory: $PROJECT_DIR"
 
-# Check if dist directory exists
+# Check if dist directory exists, if not build it
 if [ ! -d "dist" ]; then
-    echo "❌ Error: dist directory not found"
-    echo "Run 'npx expo export -p web' first"
-    exit 1
+    echo "📦 Building frontend (dist directory not found)..."
+    echo "Installing dependencies..."
+    npm install
+    
+    echo "Building Expo web..."
+    npx expo export -p web
+    
+    if [ ! -d "dist" ]; then
+        echo "❌ Error: Build failed - dist directory still not found"
+        exit 1
+    fi
+    echo "✅ Build complete!"
+else
+    echo "✅ Using existing dist directory"
 fi
 
 echo "📤 Copying files to $FRONTEND_DIR..."
