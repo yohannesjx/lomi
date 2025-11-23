@@ -234,12 +234,14 @@ func (h *AuthHandler) TelegramWidgetLogin(c *fiber.Ctx) error {
 	
 	if c.Method() == "GET" {
 		// Redirect method - parameters in query string
-		// c.Queries() returns map[string][]string
-		for key, values := range c.Queries() {
-			if len(values) > 0 {
-				params[key] = values[0]
-			}
-		}
+		// Use c.Query() for individual parameters (Fiber's standard method)
+		params["id"] = c.Query("id")
+		params["first_name"] = c.Query("first_name")
+		params["last_name"] = c.Query("last_name")
+		params["username"] = c.Query("username")
+		params["photo_url"] = c.Query("photo_url")
+		params["auth_date"] = c.Query("auth_date")
+		params["hash"] = c.Query("hash")
 		log.Printf("📋 Query params: %+v", params)
 	} else {
 		// POST method - parameters in body (callback method)
