@@ -110,10 +110,22 @@ export const WelcomeScreen = ({ navigation }: any) => {
 
         // Check if already authenticated - if so, navigate immediately
         const { isAuthenticated, user, loadTokens } = useAuthStore.getState();
+
+        // Hide MainButton if authenticated
+        if (isAuthenticated && webApp) {
+            webApp.MainButton.hide();
+        }
+
         loadTokens().then(() => {
             const state = useAuthStore.getState();
             if (state.isAuthenticated && state.user) {
                 console.log('✅ User already authenticated, navigating...');
+
+                // Hide MainButton before navigating
+                if (webApp) {
+                    webApp.MainButton.hide();
+                }
+
                 if (state.user.onboarding_completed) {
                     navigation.replace('Main');
                 } else {

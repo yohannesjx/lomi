@@ -57,6 +57,11 @@ export default function App() {
                             console.warn('⚠️ Fullscreen not supported:', error);
                         }
 
+                        // Hide MainButton by default (WelcomeScreen will show it if needed)
+                        if (window.Telegram.WebApp.MainButton) {
+                            window.Telegram.WebApp.MainButton.hide();
+                        }
+
                         console.log('✅ Telegram WebApp initialized');
                     }
                 };
@@ -78,6 +83,11 @@ export default function App() {
                         }
                     } catch (error) {
                         console.warn('⚠️ Fullscreen not supported:', error);
+                    }
+
+                    // Hide MainButton by default (WelcomeScreen will show it if needed)
+                    if (window.Telegram.WebApp.MainButton) {
+                        window.Telegram.WebApp.MainButton.hide();
                     }
 
                     console.log('✅ Telegram WebApp initialized (script already loaded)');
