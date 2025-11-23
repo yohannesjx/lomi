@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { Button } from '../../components/ui/Button';
+import { BackButton } from '../../components/ui/BackButton';
 import { COLORS, SPACING, SIZES } from '../../theme/colors';
 import { UserService } from '../../api/services';
 import { useAuthStore } from '../../store/authStore';
@@ -71,7 +72,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                     return;
                 }
             }
-            
+
             // 1. Get pre-signed upload URL
             const { upload_url, file_key } = await UserService.getPresignedUploadURL('photo');
 
@@ -80,7 +81,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 // Web: Handle different URI types safely
                 try {
                     let blob: Blob;
-                    
+
                     if (localUri.startsWith('data:')) {
                         // Data URL - convert to blob
                         const base64Data = localUri.split(',')[1];
@@ -106,7 +107,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                         }
                         blob = await response.blob();
                     }
-                    
+
                     console.log('📤 Uploading to R2...', {
                         url: upload_url.substring(0, 100) + '...',
                         blobSize: blob.size,
@@ -192,13 +193,13 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 response: error?.response?.data,
                 status: error?.response?.status,
             });
-            
+
             const errorMessage = error?.response?.data?.error || error?.message || 'Failed to upload photo';
             Alert.alert(
-                'Upload Failed', 
+                'Upload Failed',
                 `${errorMessage}\n\nTroubleshooting:\n• Check your internet connection\n• Verify backend is running\n• Check R2 credentials\n• Try again in a moment`
             );
-            
+
             // Reset photo state
             const newPhotos = [...photos];
             newPhotos[index] = { uri: null, fileKey: null, isUploading: false };
@@ -207,38 +208,25 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
     };
 
     const handleNext = async () => {
-        // Require at least 3 photos (as per requirements)
-        const uploadedPhotos = photos.filter(p => p.fileKey !== null);
-        const localPhotos = photos.filter(p => p.uri !== null && p.fileKey === null);
-        
-        // In dev mode, allow proceeding with local photos (not uploaded)
-        if (__DEV__ && uploadedPhotos.length === 0 && localPhotos.length >= 3) {
-            console.warn('⚠️ Dev mode: Proceeding without uploading to R2');
-            console.log('ℹ️  In production, photos will be uploaded to R2');
-            await updateStep(5);
-            navigation.navigate('Video');
-            return;
-        }
-        
-        if (uploadedPhotos.length < 3) {
-            Alert.alert('More Photos Needed', 'Please upload at least 3 photos to continue.');
-            return;
-        }
+        // Count photos that are selected (either uploaded or uploading)
+        const selectedPhotos = photos.filter(p => p.uri !== null);
 
-        // Check if any photos are still uploading
-        const stillUploading = photos.some(p => p.isUploading);
-        if (stillUploading) {
-            Alert.alert('Please Wait', 'Some photos are still uploading. Please wait.');
+        if (selectedPhotos.length < 2) {
+            Alert.alert('More Photos Needed', 'Please select at least 2 photos to continue.');
             return;
         }
 
         setIsSubmitting(true);
         try {
-            // Register all uploaded photos with backend
+            // Register only the photos that have finished uploading
+            const uploadedPhotos = photos.filter(p => p.fileKey !== null);
+
+            console.log(`📸 Registering ${uploadedPhotos.length} uploaded photos with backend...`);
+
             for (let i = 0; i < photos.length; i++) {
                 const photo = photos[i];
                 if (photo.fileKey) {
-                    console.log(`📸 Creating media record ${i + 1}/${uploadedPhotos.length} - FileKey: ${photo.fileKey}`);
+                    console.log(`📸 Creating media record ${i + 1} - FileKey: ${photo.fileKey}`);
                     try {
                         const result = await UserService.uploadMedia({
                             media_type: 'photo',
@@ -247,27 +235,31 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                         });
                         console.log(`✅ Media record created: ${result.id}`);
                     } catch (error: any) {
-                        console.error(`❌ Failed to create media record for photo ${i + 1}:`, {
-                            error,
-                            message: error?.message,
-                            response: error?.response?.data,
-                            status: error?.response?.status,
-                            fileKey: photo.fileKey,
-                        });
-                        throw error; // Re-throw to show error to user
+                        console.error(`❌ Failed to create media record for photo ${i + 1}:`, error);
+                        // Continue with other photos even if one fails
                     }
                 }
             }
-            navigation.navigate('Interests');
+
+            // Update onboarding step
+            console.log('📤 Updating onboarding step to 5...');
+            await updateStep(5);
+            console.log('✅ Onboarding step updated');
+
+            // Navigate to next screen
+            // Photos still uploading will continue in background
+            const stillUploading = photos.filter(p => p.uri !== null && p.fileKey === null && p.isUploading);
+            if (stillUploading.length > 0) {
+                console.log(`ℹ️  ${stillUploading.length} photos still uploading in background`);
+            }
+
+            navigation.navigate('Video');
         } catch (error: any) {
             console.error('Submit error:', error);
-            // In dev mode, allow proceeding even if backend fails
-            if (__DEV__) {
-                console.warn('⚠️ Dev mode: Backend registration failed, but continuing...');
-                navigation.navigate('Interests');
-            } else {
-                Alert.alert('Error', 'Failed to save photos. Please try again.');
-            }
+            Alert.alert(
+                'Error',
+                'Failed to save photos. Please try again.\n\n' + (error?.message || 'Unknown error')
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -305,6 +297,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
+                <BackButton />
                 <View style={styles.header}>
                     <Text style={styles.stepIndicator}>Step 2 of 4</Text>
                     <Text style={styles.title}>Add your best photos</Text>
