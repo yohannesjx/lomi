@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: lomi_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-lomi}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-lomi_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    networks:
+      - lomi_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-lomi} -d ${DB_NAME:-lomi_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Pub/Sub
+  redis:
+    image: redis:7-alpine
+    container_name: lomi_redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - lomi_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "-a", "${REDIS_PASSWORD}", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Golang Backend API (Production)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: lomi_backend
+    restart: unless-stopped
+    environment:
+      # Server
+      APP_ENV: production
+      APP_PORT: 8080
+      APP_NAME: Lomi Social API
+      
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-lomi}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-lomi_db}
+      DB_SSL_MODE: disable
+      DB_MAX_OPEN_CONNS: 25
+      DB_MAX_IDLE_CONNS: 5
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: 0
+      
+      # Storage (Cloudflare R2 for Production)
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_USE_SSL: ${S3_USE_SSL:-true}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_BUCKET_PHOTOS: ${S3_BUCKET_PHOTOS:-lomi-photos}
+      S3_BUCKET_VIDEOS: ${S3_BUCKET_VIDEOS:-lomi-videos}
+      S3_BUCKET_GIFTS: ${S3_BUCKET_GIFTS:-lomi-gifts}
+      S3_BUCKET_VERIFICATIONS: ${S3_BUCKET_VERIFICATIONS:-lomi-verifications}
+      
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-24h}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-168h}
+      
+      # Telegram
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-lomi_social_bot}
+      
+      # Payment Gateways
+      TELEBIRR_API_KEY: ${TELEBIRR_API_KEY:-}
+      CBE_BIRR_API_KEY: ${CBE_BIRR_API_KEY:-}
+      HELLOCASH_API_KEY: ${HELLOCASH_API_KEY:-}
+      AMOLE_API_KEY: ${AMOLE_API_KEY:-}
+      
+      # Platform Settings
+      PLATFORM_FEE_PERCENTAGE: ${PLATFORM_FEE_PERCENTAGE:-25}
+      MIN_PAYOUT_AMOUNT: ${MIN_PAYOUT_AMOUNT:-1000}
+      COIN_TO_BIRR_RATE: ${COIN_TO_BIRR_RATE:-0.10}
+      
+      # Notifications (optional)
+      ONESIGNAL_APP_ID: ${ONESIGNAL_APP_ID:-}
+      ONESIGNAL_API_KEY: ${ONESIGNAL_API_KEY:-}
+      FIREBASE_SERVER_KEY: ${FIREBASE_SERVER_KEY:-}
+      
+    ports:
+      - "127.0.0.1:8080:8080"  # Only expose on localhost (Caddy will proxy)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lomi_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  lomi_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+

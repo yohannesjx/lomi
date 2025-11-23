@@ -1,0 +1,164 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button } from '../../components/ui/Button';
+import { COLORS, SPACING, SIZES } from '../../theme/colors';
+import { UserService } from '../../api/services';
+import { useAuthStore } from '../../store/authStore';
+
+export const GenderPreferenceScreen = ({ navigation }: any) => {
+    const [lookingFor, setLookingFor] = useState<'male' | 'female' | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleNext = async () => {
+        if (!lookingFor) return;
+
+        setIsSaving(true);
+        try {
+            // Save gender preference to user preferences
+            const currentUser = useAuthStore.getState().user;
+            const currentPreferences = currentUser?.preferences || {};
+            
+            await UserService.updateProfile({
+                preferences: {
+                    ...currentPreferences,
+                    looking_for: lookingFor,
+                },
+            });
+
+            // Navigate to Main App
+            navigation.navigate('Main');
+        } catch (error: any) {
+            console.error('Save preference error:', error);
+            // In dev mode, continue even if API fails
+            if (__DEV__) {
+                navigation.navigate('Main');
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const GenderOption = ({ type, label, icon }: { type: 'male' | 'female', label: string, icon: string }) => (
+        <TouchableOpacity
+            style={[
+                styles.genderOption,
+                lookingFor === type && styles.genderOptionSelected
+            ]}
+            onPress={() => setLookingFor(type)}
+        >
+            <Text style={styles.genderIcon}>{icon}</Text>
+            <Text style={[
+                styles.genderLabel,
+                lookingFor === type && styles.genderLabelSelected
+            ]}>{label}</Text>
+        </TouchableOpacity>
+    );
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                <View style={styles.header}>
+                    <Text style={styles.stepIndicator}>Step 4 of 4</Text>
+                    <Text style={styles.title}>Who are you looking for?</Text>
+                    <Text style={styles.subtitle}>This helps us show you the right matches</Text>
+                </View>
+
+                <View style={styles.content}>
+                    <View style={styles.genderContainer}>
+                        <GenderOption type="female" label="Female" icon="👩🏾" />
+                        <GenderOption type="male" label="Male" icon="👨🏾" />
+                    </View>
+                </View>
+
+                <View style={styles.footer}>
+                    <Button
+                        title={isSaving ? "Saving..." : "Next Step"}
+                        onPress={handleNext}
+                        disabled={!lookingFor || isSaving}
+                        isLoading={isSaving}
+                        size="large"
+                    />
+                </View>
+            </ScrollView>
+        </SafeAreaView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: COLORS.background,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        padding: SPACING.l,
+    },
+    header: {
+        marginBottom: SPACING.xl,
+    },
+    stepIndicator: {
+        color: COLORS.primary,
+        fontWeight: 'bold',
+        marginBottom: SPACING.s,
+        fontSize: 14,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: COLORS.textPrimary,
+        marginBottom: SPACING.xs,
+    },
+    subtitle: {
+        fontSize: 16,
+        color: COLORS.textSecondary,
+    },
+    content: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    genderContainer: {
+        flexDirection: 'row',
+        gap: SPACING.l,
+        width: '100%',
+        maxWidth: 400,
+    },
+    genderOption: {
+        flex: 1,
+        backgroundColor: COLORS.surface,
+        borderRadius: SIZES.radiusL,
+        padding: SPACING.xl,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: COLORS.surfaceHighlight,
+        minHeight: 200,
+    },
+    genderOptionSelected: {
+        borderColor: COLORS.primary,
+        backgroundColor: 'rgba(167, 255, 131, 0.1)',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    genderIcon: {
+        fontSize: 64,
+        marginBottom: SPACING.m,
+    },
+    genderLabel: {
+        color: COLORS.textSecondary,
+        fontWeight: '600',
+        fontSize: 18,
+    },
+    genderLabelSelected: {
+        color: COLORS.primary,
+        fontWeight: 'bold',
+    },
+    footer: {
+        marginTop: SPACING.xl,
+    },
+});
+

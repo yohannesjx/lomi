@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Simple One-Command Deployment
+# Usage: ./deploy [commit message]
+# 
+# This will:
+# 1. Commit all changes
+# 2. Push to GitHub
+# 3. Server auto-deploys (if webhook is set up)
+
+set -e
+
+COMMIT_MSG="${1:-Deploy: $(date +'%Y-%m-%d %H:%M:%S')}"
+
+echo "🚀 Deploying to production..."
+echo "📝 Message: $COMMIT_MSG"
+echo ""
+
+# Check if git is initialized
+if [ ! -d .git ]; then
+    echo "📦 Initializing git..."
+    git init
+    git remote add origin https://github.com/yohannesjx/lomi_mini.git 2>/dev/null || true
+fi
+
+# Stage all changes
+echo "📦 Staging changes..."
+git add .
+
+# Check if there are changes
+if [ -z "$(git status --porcelain)" ]; then
+    echo "ℹ️  No changes to commit"
+else
+    echo "💾 Committing..."
+    git commit -m "$COMMIT_MSG" || true
+fi
+
+# Get current branch
+BRANCH=$(git branch --show-current 2>/dev/null || echo "main")
+
+# Push to GitHub
+echo "📤 Pushing to GitHub..."
+git push -u origin $BRANCH 2>/dev/null || git push origin $BRANCH
+
+echo ""
+echo "✅ Code pushed to GitHub!"
+echo ""
+echo "⏳ Server will auto-deploy (if webhook is set up)"
+echo ""
+echo "📊 Check status on server:"
+echo "   ssh user@152.53.87.200 'cd /opt/lomi_mini && docker-compose -f docker-compose.prod.yml ps'"
+

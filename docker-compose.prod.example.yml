@@ -1,0 +1,20 @@
+# Production Docker Compose Override
+# Use this with: docker-compose -f docker-compose.yml -f docker-compose.prod.example.yml up
+# Or copy these values to your docker-compose.yml for production
+
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      # Use Cloudflare R2 instead of MinIO
+      S3_ENDPOINT: https://a53cdfc7c678dac2a028159bcd178da2.r2.cloudflarestorage.com
+      S3_ACCESS_KEY: c7df163be474aae5317aa530bd8448bf
+      S3_SECRET_KEY: bef8caaaf0ef6577e5b4aa0b16bd2d08600d405a3b27d82ee002b1f203fe35a5
+      S3_USE_SSL: "true"
+      S3_REGION: "auto"
+      
+      # Production settings
+      APP_ENV: production
+      JWT_SECRET: ${JWT_SECRET}  # Set this in your production environment
+

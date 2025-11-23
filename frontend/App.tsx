@@ -1,0 +1,158 @@
+import React, { useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View, Text, Platform } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { COLORS } from './src/theme/colors';
+
+// Placeholder Screens (We will move these to separate files later)
+const SplashScreen = () => (
+    <View style={styles.container}>
+        <Text style={styles.title}>Lomi Social 💚</Text>
+        <Text style={styles.subtitle}>Find your Lomi in Ethiopia</Text>
+    </View>
+);
+import { WelcomeScreen } from './src/screens/onboarding/WelcomeScreen';
+import { ProfileSetupScreen } from './src/screens/onboarding/ProfileSetupScreen';
+import { GenderPreferenceScreen } from './src/screens/onboarding/GenderPreferenceScreen';
+import { PhotoUploadScreen } from './src/screens/onboarding/PhotoUploadScreen';
+import { InterestsScreen } from './src/screens/onboarding/InterestsScreen';
+
+import { MainTabNavigator } from './src/navigation/MainTabNavigator';
+import { ChatDetailScreen } from './src/screens/chat/ChatDetailScreen';
+import { BuyCoinsScreen } from './src/screens/coins/BuyCoinsScreen';
+import { CashoutScreen } from './src/screens/payout/CashoutScreen';
+import { TelebirrPayoutScreen } from './src/screens/payout/TelebirrPayoutScreen';
+import { PayoutThankYouScreen } from './src/screens/payout/PayoutThankYouScreen';
+import { LeaderboardScreen } from './src/screens/payout/LeaderboardScreen';
+import { AddVibeScreen } from './src/screens/explore/AddVibeScreen';
+import { ExploreDetailScreen } from './src/screens/explore/ExploreDetailScreen';
+
+const Stack = createStackNavigator();
+
+export default function App() {
+
+    useEffect(() => {
+        // Inject Telegram WebApp script for Web platform
+        if (Platform.OS === 'web' && typeof document !== 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://telegram.org/js/telegram-web-app.js';
+            script.async = true;
+            script.onload = () => {
+                // Initialize after script loads
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.ready();
+                    window.Telegram.WebApp.expand();
+                }
+            };
+            document.body.appendChild(script);
+        }
+
+        // Load stored tokens on app start
+        const { loadTokens } = require('./src/store/authStore').useAuthStore.getState();
+        loadTokens();
+    }, []);
+
+    return (
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaProvider>
+                <NavigationContainer theme={{
+                dark: true,
+                colors: {
+                    primary: COLORS.primary,
+                    background: COLORS.background,
+                    card: COLORS.surface,
+                    text: COLORS.textPrimary,
+                    border: COLORS.surfaceHighlight,
+                    notification: COLORS.accent,
+                }
+            }}>
+                <StatusBar style="light" />
+                <Stack.Navigator
+                    screenOptions={{
+                        headerShown: false,
+                        cardStyleInterpolator: ({ current, next, layouts }) => {
+                            return {
+                                cardStyle: {
+                                    transform: [
+                                        {
+                                            translateX: current.progress.interpolate({
+                                                inputRange: [0, 1],
+                                                outputRange: [layouts.screen.width, 0],
+                                            }),
+                                        },
+                                    ],
+                                    opacity: current.progress.interpolate({
+                                        inputRange: [0, 0.5, 0.9, 1],
+                                        outputRange: [0, 0.25, 0.7, 1],
+                                    }),
+                                },
+                            };
+                        },
+                        transitionSpec: {
+                            open: {
+                                animation: 'spring',
+                                config: {
+                                    stiffness: 1000,
+                                    damping: 500,
+                                    mass: 3,
+                                    overshootClamping: true,
+                                    restDisplacementThreshold: 0.01,
+                                    restSpeedThreshold: 0.01,
+                                },
+                            },
+                            close: {
+                                animation: 'spring',
+                                config: {
+                                    stiffness: 1000,
+                                    damping: 500,
+                                    mass: 3,
+                                    overshootClamping: true,
+                                    restDisplacementThreshold: 0.01,
+                                    restSpeedThreshold: 0.01,
+                                },
+                            },
+                        },
+                    }}
+                >
+                    <Stack.Screen name="Welcome" component={WelcomeScreen} />
+                    <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+                    <Stack.Screen name="GenderPreference" component={GenderPreferenceScreen} />
+                    <Stack.Screen name="PhotoUpload" component={PhotoUploadScreen} />
+                    <Stack.Screen name="Interests" component={InterestsScreen} />
+                    <Stack.Screen name="Main" component={MainTabNavigator} />
+                    <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
+                    <Stack.Screen name="BuyCoins" component={BuyCoinsScreen} />
+                    <Stack.Screen name="Cashout" component={CashoutScreen} />
+                    <Stack.Screen name="TelebirrPayout" component={TelebirrPayoutScreen} />
+                    <Stack.Screen name="PayoutThankYou" component={PayoutThankYouScreen} />
+                    <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+                    <Stack.Screen name="AddVibe" component={AddVibeScreen} />
+                    <Stack.Screen name="ExploreDetail" component={ExploreDetailScreen} />
+                </Stack.Navigator>
+            </NavigationContainer>
+        </SafeAreaProvider>
+        </GestureHandlerRootView>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: COLORS.background,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    title: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: COLORS.primary,
+        marginBottom: 10,
+    },
+    subtitle: {
+        fontSize: 18,
+        color: COLORS.textSecondary,
+    },
+});

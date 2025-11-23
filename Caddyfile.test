@@ -1,0 +1,82 @@
+# Caddyfile for Testing with IP (Before DNS is configured)
+# Use this temporarily if DNS isn't set up yet
+# Server IP: 152.53.87.200
+
+# Landing Page / Frontend (using IP)
+:80 {
+    # Serve static files
+    root * /var/www/lomi-frontend
+    
+    # SPA fallback
+    try_files {path} /index.html
+    
+    # Security headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+    
+    # Compression
+    encode gzip zstd
+    
+    # Logging
+    log {
+        output file /var/log/caddy/frontend.log
+        format json
+    }
+    
+    file_server
+}
+
+# Backend API (using IP)
+:8080 {
+    # This will conflict with your backend - use subdomain instead
+    # Better: Use api subdomain even with IP
+}
+
+# Better approach: Use host header matching
+152.53.87.200 {
+    # Frontend
+    handle / {
+        root * /var/www/lomi-frontend
+        try_files {path} /index.html
+        file_server
+    }
+    
+    # API
+    handle /api/* {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    
+    # WebSocket
+    handle /ws {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    
+    # Security headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+    }
+    
+    encode gzip zstd
+    
+    log {
+        output file /var/log/caddy/app.log
+        format json
+    }
+}
+

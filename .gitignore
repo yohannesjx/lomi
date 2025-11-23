@@ -1,0 +1,62 @@
+# Environment files
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+.dockerignore
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets
+secrets/
+*.pem
+*.key
+*.crt
+
+# Backend
+backend/tmp/
+backend/bin/
+backend/main
+
+# Frontend
+frontend/.expo/
+frontend/dist/
+frontend/.next/
+frontend/.expo-shared/

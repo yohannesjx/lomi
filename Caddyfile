@@ -1,0 +1,111 @@
+# Caddyfile for Lomi Social
+# Place this in /etc/caddy/Caddyfile on your server
+# Server IP: 152.53.87.200
+#
+# DNS Configuration Required:
+# A     lomi.social        → 152.53.87.200
+# A     api.lomi.social    → 152.53.87.200
+
+# Landing Page / Frontend
+lomi.social {
+    # Serve static files (if hosting frontend on server)
+    # Update this path to where your frontend build is located
+    root * /var/www/lomi-frontend
+    
+    # SPA fallback - serve index.html for all routes
+    try_files {path} /index.html
+    
+    # Security headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    }
+    
+    # Compression
+    encode gzip zstd
+    
+    # Logging
+    log {
+        output file /var/log/caddy/frontend.log
+        format json
+    }
+    
+    # File server
+    file_server
+}
+
+# Backend API
+api.lomi.social {
+    # Reverse proxy to backend Docker container
+    reverse_proxy localhost:8080 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+        
+        # Health check
+        health_uri /api/v1/health
+        health_interval 30s
+        health_timeout 5s
+    }
+    
+    # CORS headers (backend should also handle this)
+    header {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+        Access-Control-Allow-Credentials "true"
+    }
+    
+    # Handle preflight requests
+    @options {
+        method OPTIONS
+    }
+    handle @options {
+        header {
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+            Access-Control-Max-Age "3600"
+        }
+        respond 204
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/api.log
+        format json
+    }
+    
+    # Compression
+    encode gzip zstd
+}
+
+# WebSocket support for real-time features
+api.lomi.social/ws {
+    reverse_proxy localhost:8080 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# Optional: Webhook endpoint (if you want it behind HTTPS)
+# Uncomment if you want webhook accessible via HTTPS
+# webhook.lomi.social {
+#     reverse_proxy localhost:9000 {
+#         header_up Host {host}
+#         header_up X-Real-IP {remote}
+#         header_up X-Forwarded-For {remote}
+#         header_up X-Forwarded-Proto {scheme}
+#     }
+#     
+#     log {
+#         output file /var/log/caddy/webhook.log
+#         format json
+#     }
+# }

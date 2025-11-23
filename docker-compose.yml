@@ -1,0 +1,206 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: lomi_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lomi
+      POSTGRES_PASSWORD: lomi123
+      POSTGRES_DB: lomi_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    networks:
+      - lomi_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lomi -d lomi_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Pub/Sub
+  redis:
+    image: redis:7-alpine
+    container_name: lomi_redis
+    restart: unless-stopped
+    command: redis-server --requirepass lomi123 --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lomi_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO (S3-compatible storage)
+  minio:
+    image: minio/minio:latest
+    container_name: lomi_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    volumes:
+      - minio_data:/data
+    networks:
+      - lomi_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MinIO Client - Create buckets on startup
+  minio_client:
+    image: minio/mc:latest
+    container_name: lomi_minio_client
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/lomi-photos --ignore-existing;
+      /usr/bin/mc mb myminio/lomi-videos --ignore-existing;
+      /usr/bin/mc mb myminio/lomi-gifts --ignore-existing;
+      /usr/bin/mc mb myminio/lomi-verifications --ignore-existing;
+      /usr/bin/mc anonymous set download myminio/lomi-photos;
+      /usr/bin/mc anonymous set download myminio/lomi-videos;
+      /usr/bin/mc anonymous set download myminio/lomi-gifts;
+      exit 0;
+      "
+    networks:
+      - lomi_network
+
+  # Golang Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: lomi_backend
+    restart: unless-stopped
+    environment:
+      # Server
+      APP_ENV: development
+      APP_PORT: 8080
+      APP_NAME: Lomi Social API
+      
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: lomi
+      DB_PASSWORD: lomi123
+      DB_NAME: lomi_db
+      DB_SSL_MODE: disable
+      DB_MAX_OPEN_CONNS: 25
+      DB_MAX_IDLE_CONNS: 5
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: lomi123
+      REDIS_DB: 0
+      
+      # Storage (MinIO for Local, Cloudflare R2 for Prod)
+      # For R2: Set S3_ENDPOINT to <accountid>.r2.cloudflarestorage.com
+      S3_ENDPOINT: minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_USE_SSL: "false"
+      S3_REGION: "auto" # R2 uses 'auto'
+      S3_BUCKET_PHOTOS: lomi-photos
+      S3_BUCKET_VIDEOS: lomi-videos
+      S3_BUCKET_GIFTS: lomi-gifts
+      S3_BUCKET_VERIFICATIONS: lomi-verifications
+      
+      # JWT
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_ACCESS_EXPIRY: 24h
+      JWT_REFRESH_EXPIRY: 168h
+      
+      # Telegram
+      TELEGRAM_BOT_TOKEN: 8453633918:AAE6UxkHrplAxyKXXBLt56bQufhZpH-rVEM
+      TELEGRAM_BOT_USERNAME: lomi_social_bot
+      
+      # Payment Gateways (placeholders)
+      TELEBIRR_API_KEY: ""
+      CBE_BIRR_API_KEY: ""
+      HELLOCASH_API_KEY: ""
+      AMOLE_API_KEY: ""
+      
+      # Platform Settings
+      PLATFORM_FEE_PERCENTAGE: 25
+      MIN_PAYOUT_AMOUNT: 1000
+      COIN_TO_BIRR_RATE: 0.10
+      
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - /app/tmp  # Exclude tmp directory
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - lomi_network
+    command: air -c .air.toml  # Hot reload in development
+
+  # Adminer - Database UI (optional, for development)
+  adminer:
+    image: adminer:latest
+    container_name: lomi_adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+    networks:
+      - lomi_network
+
+  # Redis Commander - Redis UI (optional, for development)
+  redis_commander:
+    image: rediscommander/redis-commander:latest
+    container_name: lomi_redis_commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:lomi123
+    ports:
+      - "8082:8081"
+    depends_on:
+      - redis
+    networks:
+      - lomi_network
+
+networks:
+  lomi_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
