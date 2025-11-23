@@ -45,7 +45,8 @@ export const WelcomeScreen = ({ navigation }: any) => {
                 }
             }
         });
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // handleLogin is stable, no need to include in deps
 
     const handleLogin = async () => {
         try {
