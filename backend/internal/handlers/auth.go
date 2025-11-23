@@ -188,7 +188,7 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 				user = existingUser
 				log.Printf("✅ User already exists (race condition): ID=%s, TelegramID=%d", user.ID, user.TelegramID)
 			} else if checkResult.Error == gorm.ErrRecordNotFound {
-			// Create new user with required fields
+				// Create new user with required fields
 			// Use full name from Telegram (first_name + last_name)
 			fullName := strings.TrimSpace(tgUser.FirstName + " " + tgUser.LastName)
 			if fullName == "" {
@@ -253,22 +253,29 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 				}
 			}
 
-			log.Printf("✅ Created new user: ID=%s, TelegramID=%d", user.ID, user.TelegramID)
+				log.Printf("✅ Created new user: ID=%s, TelegramID=%d", user.ID, user.TelegramID)
 
-			// Save profile photo if available
-			if tgUser.PhotoURL != "" {
-				media := models.Media{
-					UserID:       user.ID,
-					MediaType:    models.MediaTypePhoto,
-					URL:          tgUser.PhotoURL,
-					DisplayOrder: 1,
-					IsApproved:   true, // Auto-approve Telegram profile photos? Maybe safe.
+				// Save profile photo if available
+				if tgUser.PhotoURL != "" {
+					media := models.Media{
+						UserID:       user.ID,
+						MediaType:    models.MediaTypePhoto,
+						URL:          tgUser.PhotoURL,
+						DisplayOrder: 1,
+						IsApproved:   true, // Auto-approve Telegram profile photos? Maybe safe.
+					}
+					if err := database.DB.Create(&media).Error; err != nil {
+						log.Printf("⚠️ Failed to save Telegram profile photo: %v", err)
+					} else {
+						log.Printf("✅ Saved Telegram profile photo for user %s", user.ID)
+					}
 				}
-				if err := database.DB.Create(&media).Error; err != nil {
-					log.Printf("⚠️ Failed to save Telegram profile photo: %v", err)
-				} else {
-					log.Printf("✅ Saved Telegram profile photo for user %s", user.ID)
-				}
+			} else {
+				log.Printf("❌ Database error during user lookup: %v", checkResult.Error)
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error":   "Database error",
+					"details": checkResult.Error.Error(),
+				})
 			}
 		} else {
 			log.Printf("❌ Database error: %v", result.Error)
