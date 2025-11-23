@@ -323,9 +323,9 @@ func (h *AuthHandler) TelegramWidgetLogin(c *fiber.Ctx) error {
 	secretKey := secretKeyHash[:]
 	
 	// Compute HMAC-SHA256
-	h := hmac.New(sha256.New, secretKey)
-	h.Write([]byte(dataCheckString))
-	computedHash := hex.EncodeToString(h.Sum(nil))
+	mac := hmac.New(sha256.New, secretKey)
+	mac.Write([]byte(dataCheckString))
+	computedHash := hex.EncodeToString(mac.Sum(nil))
 	
 	// Compare hashes
 	if computedHash != hash {
