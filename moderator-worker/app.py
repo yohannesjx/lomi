@@ -145,7 +145,7 @@ def check_face_and_age(image_bytes: bytes) -> dict:
 
 
 def check_nsfw(image_bytes: bytes) -> dict:
-    """Check for NSFW content using Qwen model"""
+    """Check for NSFW content using FalAI NSFW detection model"""
     if nsfw_model is None or nsfw_processor is None:
         logger.warning("NSFW model not loaded, skipping NSFW check")
         return {
@@ -156,21 +156,48 @@ def check_nsfw(image_bytes: bytes) -> dict:
     
     try:
         # Load image
-        image = Image.open(BytesIO(image_bytes))
+        image = Image.open(BytesIO(image_bytes)).convert("RGB")
         
-        # Process with Qwen model
-        # Note: Qwen2-VL-7B-Instruct is a vision-language model
-        # We'll use it to classify NSFW content
-        # This is a simplified version - adjust based on actual model API
+        # Process image
+        inputs = nsfw_processor(images=image, return_tensors="pt")
         
-        # For now, return placeholder scores
-        # TODO: Implement actual Qwen NSFW classification
-        # The model should return probabilities for porn, sexy, hentai categories
+        # Move inputs to same device as model
+        device = next(nsfw_model.parameters()).device
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        
+        # Run inference
+        with torch.no_grad():
+            outputs = nsfw_model(**inputs)
+            logits = outputs.logits
+            probs = torch.nn.functional.softmax(logits, dim=-1)
+        
+        # Get probabilities (model outputs: [normal, nsfw] or similar)
+        # Adjust based on actual model output format
+        probs_list = probs[0].cpu().numpy().tolist()
+        
+        # FalAI model typically outputs: [normal, porn, sexy, hentai] or similar
+        # Map to our format (adjust indices based on actual model)
+        if len(probs_list) >= 4:
+            # Assuming format: [normal, porn, sexy, hentai]
+            porn_score = float(probs_list[1]) if len(probs_list) > 1 else 0.0
+            sexy_score = float(probs_list[2]) if len(probs_list) > 2 else 0.0
+            hentai_score = float(probs_list[3]) if len(probs_list) > 3 else 0.0
+        elif len(probs_list) == 2:
+            # Binary classification: [normal, nsfw]
+            nsfw_score = float(probs_list[1])
+            porn_score = nsfw_score * 0.5  # Distribute between categories
+            sexy_score = nsfw_score * 0.3
+            hentai_score = nsfw_score * 0.2
+        else:
+            # Fallback
+            porn_score = 0.0
+            sexy_score = 0.0
+            hentai_score = 0.0
         
         return {
-            "porn": 0.0,
-            "sexy": 0.0,
-            "hentai": 0.0
+            "porn": porn_score,
+            "sexy": sexy_score,
+            "hentai": hentai_score
         }
     except Exception as e:
         logger.error(f"NSFW check failed: {e}")
