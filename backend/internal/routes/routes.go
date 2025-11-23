@@ -23,6 +23,8 @@ func SetupRoutes(app *fiber.App) {
 	api.Get("/test/auth", handlers.TestAuthEndpoint)
 	api.Post("/test/auth", handlers.TestAuthEndpoint)
 	api.Get("/test/s3", handlers.TestS3Connection)
+	api.Get("/test/jwt", handlers.TestGetJWT)  // Generate JWT for user by ID (testing only)
+	api.Post("/test/jwt", handlers.TestGetJWT) // Generate JWT for user by ID (testing only)
 
 	// Public routes
 	authHandler := handlers.NewAuthHandler(config.Cfg)
@@ -34,7 +36,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// Protected routes (require authentication)
 	protected := api.Group("", middleware.AuthMiddleware)
-	
+
 	// Test media upload (protected)
 	protected.Get("/test/media-upload", handlers.TestMediaUpload)
 
