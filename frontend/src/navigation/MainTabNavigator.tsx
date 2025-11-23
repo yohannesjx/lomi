@@ -71,8 +71,8 @@ export const MainTabNavigator = () => {
                 tabBarStyle: {
                     backgroundColor: COLORS.surface,
                     borderTopColor: COLORS.surfaceHighlight,
-                    height: 120, // Increased to move bar up
-                    paddingBottom: 50, // Increased to clear home indicator
+                    height: 135, // Increased by 15px
+                    paddingBottom: 65, // Increased by 15px
                     paddingTop: 10,
                     elevation: 0, // Remove shadow on Android
                     borderTopWidth: 1,
