@@ -77,10 +77,10 @@ export const OnboardingNavigator: React.FC<{ navigation: any }> = ({ navigation 
             if (onboardingStep > 0 && !onboardingCompleted && !hasShownWelcomeBack) {
                 setHasShownWelcomeBack(true);
                 const message = 'Welcome back! Continuing where you left off...';
-                if (Platform.OS === 'android') {
+                if (Platform.OS === 'android' && ToastAndroid) {
                     ToastAndroid.show(message, ToastAndroid.SHORT);
                 } else {
-                    // For iOS/web, we'll use a custom toast component
+                    // For iOS/web, use console or alert
                     console.log('👋', message);
                 }
             }
