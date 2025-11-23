@@ -20,21 +20,19 @@ export const WelcomeScreen = ({ navigation }: any) => {
             setTgUser(webApp.initDataUnsafe.user);
         }
         
-        // If user is already authenticated, show welcome and navigate
+        // If user is already authenticated, navigate immediately (no delay)
         if (user) {
-            setTimeout(() => {
-                if (user.onboarding_completed) {
-                    navigation?.reset({
-                        index: 0,
-                        routes: [{ name: 'Main' }],
-                    });
-                } else {
-                    navigation?.reset({
-                        index: 0,
-                        routes: [{ name: 'Onboarding' }],
-                    });
-                }
-            }, 2000); // Show welcome message for 2 seconds
+            if (user.onboarding_completed) {
+                navigation?.reset({
+                    index: 0,
+                    routes: [{ name: 'Main' }],
+                });
+            } else {
+                navigation?.reset({
+                    index: 0,
+                    routes: [{ name: 'Onboarding' }],
+                });
+            }
         }
     }, [user, navigation]);
 

@@ -201,15 +201,16 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 			preferences := models.JSONMap{}
 
 			// Create user with minimal required fields for Telegram authentication
+			// Don't set profile fields (name, age, gender) - user will fill them in onboarding
 			user = models.User{
 				TelegramID:        tgUser.ID,
 				TelegramUsername:  tgUser.Username,
 				TelegramFirstName: tgUser.FirstName,
 				TelegramLastName:  tgUser.LastName,
 
-				Name:               fullName, // Pre-fill with Telegram name
-				Age:                18,
-				Gender:             models.GenderOther,
+				Name:               "User", // Temporary placeholder - will be updated in onboarding
+				Age:                18,     // Temporary - will be updated in onboarding
+				Gender:             models.GenderOther, // Temporary - will be updated in onboarding
 				City:               "Not Set",
 				RelationshipGoal:   models.GoalDating,
 				Religion:           models.ReligionNone,

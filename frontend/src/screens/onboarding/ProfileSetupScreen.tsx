@@ -19,11 +19,12 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
     const { user } = useAuthStore();
 
     useEffect(() => {
-        // Pre-fill from Telegram user data (available immediately)
+        // Pre-fill from Telegram user data (available immediately) - NO DB CALL
         const webApp = getTelegramWebApp();
         if (webApp?.initDataUnsafe?.user) {
             const tgUser = webApp.initDataUnsafe.user;
             if (tgUser.first_name) {
+                // Pre-fill name from Telegram (not from DB)
                 setName(tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : ''));
             }
             if (tgUser.photo_url) {
@@ -31,9 +32,10 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
             }
         }
         
-        // Load existing data if available (from previous partial onboarding)
-        if (user) {
-            if (user.name && user.name !== 'User' && !name) setName(user.name);
+        // Only load existing data if user has completed onboarding (returning user)
+        // For new users, we want them to fill the form even if DB has placeholder values
+        if (user && user.onboarding_completed) {
+            if (user.name && user.name !== 'User') setName(user.name);
             if (user.age && user.age > 18) setAge(user.age.toString());
             if (user.gender) setGender(user.gender);
         }
