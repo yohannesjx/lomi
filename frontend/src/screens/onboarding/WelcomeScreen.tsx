@@ -416,69 +416,8 @@ export const WelcomeScreen = ({ navigation }: any) => {
         }
     };
 
-    // Show warning screen if NOT opened from Telegram
-    if (Platform.OS === 'web' && isInTelegram === false) {
-        const debugInfo = getTelegramDebugInfo();
-        return (
-            <View style={styles.container}>
-                <LinearGradient
-                    colors={['#1a1a1a', '#000000']}
-                    style={styles.gradient}
-                />
-                <SafeAreaView style={styles.errorContent}>
-                    <ScrollView contentContainerStyle={styles.errorScroll}>
-                        <View style={styles.errorHeader}>
-                            <Text style={styles.errorEmoji}>⚠️</Text>
-                            <Text style={styles.errorTitle}>Open from Telegram</Text>
-                        </View>
-                        
-                        <View style={styles.errorBox}>
-                            <Text style={styles.errorMessage}>
-                                This app must be opened from <Text style={styles.highlight}>Telegram's in-app browser</Text>, not Safari or other browsers.
-                            </Text>
-                        </View>
-
-                        <View style={styles.instructionsBox}>
-                            <Text style={styles.instructionsTitle}>📱 How to Open Correctly:</Text>
-                            <View style={styles.stepContainer}>
-                                <Text style={styles.stepNumber}>1</Text>
-                                <Text style={styles.stepText}>Open the <Text style={styles.bold}>Telegram app</Text> (not Safari)</Text>
-                            </View>
-                            <View style={styles.stepContainer}>
-                                <Text style={styles.stepNumber}>2</Text>
-                                <Text style={styles.stepText}>Search for your bot</Text>
-                            </View>
-                            <View style={styles.stepContainer}>
-                                <Text style={styles.stepNumber}>3</Text>
-                                <Text style={styles.stepText}>Tap the <Text style={styles.bold}>menu button (☰)</Text> at the bottom</Text>
-                            </View>
-                            <View style={styles.stepContainer}>
-                                <Text style={styles.stepNumber}>4</Text>
-                                <Text style={styles.stepText}>Tap <Text style={styles.bold}>"Mini App"</Text> from the menu</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.dontBox}>
-                            <Text style={styles.dontTitle}>❌ Don't:</Text>
-                            <Text style={styles.dontText}>• Type URL in Safari</Text>
-                            <Text style={styles.dontText}>• Open from browser bookmark</Text>
-                            <Text style={styles.dontText}>• Share link and open in browser</Text>
-                        </View>
-
-                        {__DEV__ && (
-                            <View style={styles.debugBox}>
-                                <Text style={styles.debugTitle}>🔍 Debug Info:</Text>
-                                <Text style={styles.debugText}>Platform: {debugInfo.platform}</Text>
-                                <Text style={styles.debugText}>User Agent: {debugInfo.userAgent.substring(0, 60)}...</Text>
-                                <Text style={styles.debugText}>WebApp Exists: {debugInfo.webAppExists ? 'Yes' : 'No'}</Text>
-                                <Text style={styles.debugText}>Has InitData: {debugInfo.hasInitData ? 'Yes' : 'No'}</Text>
-                            </View>
-                        )}
-                    </ScrollView>
-                </SafeAreaView>
-            </View>
-        );
-    }
+    // Don't show error screen for web browsers - show welcome screen with widget button instead
+    // The widget button will be shown in the main render below
 
     return (
         <View style={styles.container}>
