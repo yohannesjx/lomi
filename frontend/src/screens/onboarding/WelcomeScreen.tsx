@@ -44,7 +44,7 @@ export const WelcomeScreen = ({ navigation }: any) => {
                 script.setAttribute('data-request-access', 'write');
                 script.setAttribute('data-userpic', 'true');
                 script.setAttribute('data-radius', '12');
-                
+
                 const widgetContainer = document.getElementById('telegram-login-widget');
                 if (widgetContainer) {
                     widgetContainer.innerHTML = '';
@@ -62,37 +62,37 @@ export const WelcomeScreen = ({ navigation }: any) => {
         if (Platform.OS === 'web') {
             const debugInfo = getTelegramDebugInfo();
             const inTelegram = isTelegramWebApp();
-            
+
             // Check if platform is unknown (indicates Safari/external browser)
             const isActuallyInTelegram = (
-                debugInfo.platform !== 'unknown' && 
-                (debugInfo.platform === 'ios' || 
-                 debugInfo.platform === 'android' || 
-                 debugInfo.platform === 'tdesktop' ||
-                 debugInfo.platform === 'web' ||
-                 debugInfo.platform === 'macos')
+                debugInfo.platform !== 'unknown' &&
+                (debugInfo.platform === 'ios' ||
+                    debugInfo.platform === 'android' ||
+                    debugInfo.platform === 'tdesktop' ||
+                    debugInfo.platform === 'web' ||
+                    debugInfo.platform === 'macos')
             ) || (
-                // Even if platform is unknown, check other indicators
-                debugInfo.webAppExists && 
-                (debugInfo.url.includes('tgWebApp') || 
-                 debugInfo.search.includes('tgWebApp') ||
-                 debugInfo.hash.includes('tgWebApp') ||
-                 debugInfo.userAgent.includes('Telegram'))
-            );
-            
+                    // Even if platform is unknown, check other indicators
+                    debugInfo.webAppExists &&
+                    (debugInfo.url.includes('tgWebApp') ||
+                        debugInfo.search.includes('tgWebApp') ||
+                        debugInfo.hash.includes('tgWebApp') ||
+                        debugInfo.userAgent.includes('Telegram'))
+                );
+
             setIsInTelegram(isActuallyInTelegram);
             setIsWebBrowser(!isActuallyInTelegram); // Show widget button for web browsers
-            
+
             if (!isActuallyInTelegram) {
                 console.log('🌐 App opened in web browser - will show Telegram Login Widget');
                 // Don't initialize Telegram WebApp if not in Telegram
                 // But continue to load widget script below
             }
-            
+
             // Only initialize if we're actually in Telegram
             initializeTelegramWebApp({ enableFullscreen: false });
         }
-        
+
         // Setup Telegram MainButton for native login (only if in Telegram)
         const webApp = getTelegramWebApp();
         if (webApp && Platform.OS === 'web' && isInTelegram) {
@@ -100,28 +100,35 @@ export const WelcomeScreen = ({ navigation }: any) => {
             webApp.MainButton.setText('Continue with Telegram');
             webApp.MainButton.show();
             webApp.MainButton.onClick(handleLogin);
-            
+
             // Cleanup on unmount
             return () => {
                 webApp.MainButton.offClick(handleLogin);
                 webApp.MainButton.hide();
             };
         }
-        
-        // Check if already authenticated
+
+        // Check if already authenticated - if so, navigate immediately
         const { isAuthenticated, user, loadTokens } = useAuthStore.getState();
         loadTokens().then(() => {
             const state = useAuthStore.getState();
             if (state.isAuthenticated && state.user) {
+                console.log('✅ User already authenticated, navigating...');
                 if (state.user.onboarding_completed) {
-                    navigation.navigate('Main');
+                    navigation.replace('Main');
                 } else {
-                    navigation.navigate('Onboarding');
+                    navigation.replace('Onboarding');
                 }
             }
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isInTelegram]); // Include isInTelegram in deps
+
+    // Don't render anything if already authenticated (will navigate away)
+    const { isAuthenticated } = useAuthStore();
+    if (isAuthenticated) {
+        return null; // Or show a loading spinner
+    }
 
     const handleWidgetCallback = async (urlParams: URLSearchParams) => {
         try {
@@ -137,7 +144,7 @@ export const WelcomeScreen = ({ navigation }: any) => {
 
                     if (accessToken && refreshToken) {
                         console.log('🔐 Found tokens in URL hash from widget redirect');
-                        
+
                         // Store tokens
                         await useAuthStore.getState().setTokens({
                             accessToken,
@@ -219,37 +226,37 @@ export const WelcomeScreen = ({ navigation }: any) => {
         try {
             // Import debug function
             const { getTelegramDebugInfo, isTelegramWebApp } = require('../../utils/telegram');
-            
+
             // Wait a bit for Telegram WebApp to fully initialize
             const webApp = getTelegramWebApp();
-            
+
             // Get comprehensive debug info
             const debugInfo = getTelegramDebugInfo();
             console.log('🔍 Telegram WebApp Debug Info:', debugInfo);
-            
+
             // Check if we're actually in Telegram
             const inTelegram = isTelegramWebApp();
             console.log('📍 In Telegram WebApp:', inTelegram);
-            
+
             // Check if we're in Telegram browser
             // Note: platform can be 'unknown' in some cases even when in Telegram
             // So we check multiple indicators
             const isInTelegramBrowser = (
-                debugInfo.platform !== 'unknown' && 
-                (debugInfo.platform === 'ios' || 
-                 debugInfo.platform === 'android' || 
-                 debugInfo.platform === 'tdesktop' ||
-                 debugInfo.platform === 'web' ||
-                 debugInfo.platform === 'macos')
+                debugInfo.platform !== 'unknown' &&
+                (debugInfo.platform === 'ios' ||
+                    debugInfo.platform === 'android' ||
+                    debugInfo.platform === 'tdesktop' ||
+                    debugInfo.platform === 'web' ||
+                    debugInfo.platform === 'macos')
             ) || (
-                // Even if platform is unknown, check other indicators
-                debugInfo.webAppExists && 
-                (debugInfo.url.includes('tgWebApp') || 
-                 debugInfo.search.includes('tgWebApp') ||
-                 debugInfo.hash.includes('tgWebApp') ||
-                 debugInfo.userAgent.includes('Telegram'))
-            );
-            
+                    // Even if platform is unknown, check other indicators
+                    debugInfo.webAppExists &&
+                    (debugInfo.url.includes('tgWebApp') ||
+                        debugInfo.search.includes('tgWebApp') ||
+                        debugInfo.hash.includes('tgWebApp') ||
+                        debugInfo.userAgent.includes('Telegram'))
+                );
+
             console.log('🔍 Platform check:', {
                 platform: debugInfo.platform,
                 isInTelegramBrowser,
@@ -257,7 +264,7 @@ export const WelcomeScreen = ({ navigation }: any) => {
                 url: debugInfo.url,
                 hasTgWebAppInUrl: debugInfo.url.includes('tgWebApp'),
             });
-            
+
             // Only show error if we're definitely NOT in Telegram
             // If platform is unknown but WebApp exists, we might still be in Telegram
             if (!isInTelegramBrowser && debugInfo.platform === 'unknown' && !debugInfo.webAppExists) {
@@ -273,21 +280,21 @@ export const WelcomeScreen = ({ navigation }: any) => {
                     `4. Tap menu button (☰) at bottom\n` +
                     `5. Tap Mini App from menu\n\n` +
                     `The app MUST be opened from Telegram's in-app browser!`;
-                
+
                 console.error('❌', errorMsg);
                 alert(errorMsg);
                 return;
             }
-            
+
             // Try to get initData with multiple retries and longer wait times
             let initData = getTelegramInitData();
             let retries = 5; // More retries
             let waitTime = 500; // Start with 500ms
-            
+
             while (!initData && retries > 0 && webApp) {
                 console.log(`⏳ Waiting for Telegram initData... (${retries} retries left, waiting ${waitTime}ms)`);
                 await new Promise(resolve => setTimeout(resolve, waitTime));
-                
+
                 // Try to access initData directly from window (Telegram might inject it asynchronously)
                 if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
                     const tgWebApp = (window as any).Telegram.WebApp;
@@ -297,27 +304,27 @@ export const WelcomeScreen = ({ navigation }: any) => {
                         value: tgWebApp.initData?.substring(0, 50) || 'empty',
                     });
                 }
-                
+
                 initData = getTelegramInitData();
                 retries--;
                 waitTime += 500; // Increase wait time with each retry
-                
+
                 // Update debug info
                 const updatedDebug = getTelegramDebugInfo();
                 console.log('🔄 Retry debug info:', updatedDebug);
             }
-            
+
             // Final check: Try to manually construct initData from initDataUnsafe if available
             if (!initData && webApp?.initDataUnsafe) {
                 console.log('🔧 Attempting to construct initData from initDataUnsafe...');
                 const unsafe = webApp.initDataUnsafe;
-                
+
                 // Telegram WebApp 6.0+ might not provide initData string, but we can try to work with initDataUnsafe
                 // However, for authentication, we NEED the actual initData string with hash
                 console.warn('⚠️ initDataUnsafe available but initData string is missing');
                 console.warn('⚠️ Authentication requires the initData string with hash - cannot proceed without it');
             }
-            
+
             if (!initData) {
                 // We're in Telegram but initData is still missing
                 const errorMsg = `❌ Telegram authentication data is missing!\n\n` +
@@ -340,26 +347,26 @@ export const WelcomeScreen = ({ navigation }: any) => {
                     `4. Tap "Mini App" from the menu\n` +
                     `5. Check BotFather: /myapps → Verify URL is: https://lomi.social/\n\n` +
                     `The app MUST be opened from Telegram's in-app browser!`;
-                
+
                 console.error('❌', errorMsg);
                 console.error('Full debug info:', JSON.stringify(debugInfo, null, 2));
                 alert(errorMsg);
-                
+
                 // Hide MainButton to prevent retry
                 const webApp = getTelegramWebApp();
                 if (webApp?.MainButton.isVisible) {
                     webApp.MainButton.hide();
                 }
-                
+
                 return; // CRITICAL: Return early to prevent API call
             }
-            
+
             console.log('✅ InitData found, attempting login...');
             console.log('📤 Sending login request with initData length:', initData.length);
-            
+
             try {
                 await login(initData);
-                
+
                 // Check if user has completed profile
                 const user = useAuthStore.getState().user;
                 if (user?.has_profile) {
@@ -375,13 +382,13 @@ export const WelcomeScreen = ({ navigation }: any) => {
                     status: loginError?.response?.status,
                     statusText: loginError?.response?.statusText,
                 });
-                
+
                 // Show detailed error
-                const errorMsg = loginError?.response?.data?.error || 
-                                loginError?.response?.data?.message ||
-                                loginError?.message || 
-                                'Login failed. Please try again.';
-                
+                const errorMsg = loginError?.response?.data?.error ||
+                    loginError?.response?.data?.message ||
+                    loginError?.message ||
+                    'Login failed. Please try again.';
+
                 const fullErrorMsg = `❌ Login Failed\n\n` +
                     `Error: ${errorMsg}\n\n` +
                     `Status: ${loginError?.response?.status || 'Unknown'}\n\n` +
@@ -389,20 +396,20 @@ export const WelcomeScreen = ({ navigation }: any) => {
                     `1. Check your internet connection\n` +
                     `2. Verify backend is running\n` +
                     `3. Try again in a moment`;
-                
+
                 alert(fullErrorMsg);
                 throw loginError; // Re-throw to be caught by outer catch
             }
         } catch (error: any) {
             console.error('Login error:', error);
-            
+
             // Show error message (use alert for maximum compatibility)
             const webApp = getTelegramWebApp();
             const errorMsg = error?.message || 'Login failed. Please try again.';
-            
+
             // Use alert for now - showConfirm/showAlert have compatibility issues in some versions
             alert(errorMsg);
-            
+
             // Optional: Try to use Telegram's native alert if available and working
             // if (webApp && typeof webApp.showAlert === 'function') {
             //     try {

@@ -46,9 +46,17 @@ export default function App() {
                     if (window.Telegram?.WebApp) {
                         window.Telegram.WebApp.ready();
                         window.Telegram.WebApp.expand();
-                        
-                        // Don't call requestFullscreen - Telegram handles this automatically
-                        // The app will be fullscreen when opened from Telegram
+
+                        // Request fullscreen mode for immersive experience
+                        try {
+                            if (window.Telegram.WebApp.requestFullscreen) {
+                                window.Telegram.WebApp.requestFullscreen();
+                                console.log('✅ Fullscreen mode requested');
+                            }
+                        } catch (error) {
+                            console.warn('⚠️ Fullscreen not supported:', error);
+                        }
+
                         console.log('✅ Telegram WebApp initialized');
                     }
                 };
@@ -61,8 +69,17 @@ export default function App() {
                 if (window.Telegram?.WebApp) {
                     window.Telegram.WebApp.ready();
                     window.Telegram.WebApp.expand();
-                    
-                    // Don't call requestFullscreen - Telegram handles this automatically
+
+                    // Request fullscreen mode for immersive experience
+                    try {
+                        if (window.Telegram.WebApp.requestFullscreen) {
+                            window.Telegram.WebApp.requestFullscreen();
+                            console.log('✅ Fullscreen mode requested');
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Fullscreen not supported:', error);
+                    }
+
                     console.log('✅ Telegram WebApp initialized (script already loaded)');
                 }
             }
@@ -74,80 +91,80 @@ export default function App() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
                 <AuthGuard navigationRef={navigationRef}>
-                <NavigationContainer ref={navigationRef} theme={{
-                dark: true,
-                colors: {
-                    primary: COLORS.primary,
-                    background: COLORS.background,
-                    card: COLORS.surface,
-                    text: COLORS.textPrimary,
-                    border: COLORS.surfaceHighlight,
-                    notification: COLORS.accent,
-                }
-            }}>
-                <StatusBar style="light" />
-                <Stack.Navigator
-                    screenOptions={{
-                        headerShown: false,
-                        cardStyleInterpolator: ({ current, next, layouts }) => {
-                            return {
-                                cardStyle: {
-                                    transform: [
-                                        {
-                                            translateX: current.progress.interpolate({
-                                                inputRange: [0, 1],
-                                                outputRange: [layouts.screen.width, 0],
+                    <NavigationContainer ref={navigationRef} theme={{
+                        dark: true,
+                        colors: {
+                            primary: COLORS.primary,
+                            background: COLORS.background,
+                            card: COLORS.surface,
+                            text: COLORS.textPrimary,
+                            border: COLORS.surfaceHighlight,
+                            notification: COLORS.accent,
+                        }
+                    }}>
+                        <StatusBar style="light" />
+                        <Stack.Navigator
+                            screenOptions={{
+                                headerShown: false,
+                                cardStyleInterpolator: ({ current, next, layouts }) => {
+                                    return {
+                                        cardStyle: {
+                                            transform: [
+                                                {
+                                                    translateX: current.progress.interpolate({
+                                                        inputRange: [0, 1],
+                                                        outputRange: [layouts.screen.width, 0],
+                                                    }),
+                                                },
+                                            ],
+                                            opacity: current.progress.interpolate({
+                                                inputRange: [0, 0.5, 0.9, 1],
+                                                outputRange: [0, 0.25, 0.7, 1],
                                             }),
                                         },
-                                    ],
-                                    opacity: current.progress.interpolate({
-                                        inputRange: [0, 0.5, 0.9, 1],
-                                        outputRange: [0, 0.25, 0.7, 1],
-                                    }),
+                                    };
                                 },
-                            };
-                        },
-                        transitionSpec: {
-                            open: {
-                                animation: 'spring',
-                                config: {
-                                    stiffness: 1000,
-                                    damping: 500,
-                                    mass: 3,
-                                    overshootClamping: true,
-                                    restDisplacementThreshold: 0.01,
-                                    restSpeedThreshold: 0.01,
+                                transitionSpec: {
+                                    open: {
+                                        animation: 'spring',
+                                        config: {
+                                            stiffness: 1000,
+                                            damping: 500,
+                                            mass: 3,
+                                            overshootClamping: true,
+                                            restDisplacementThreshold: 0.01,
+                                            restSpeedThreshold: 0.01,
+                                        },
+                                    },
+                                    close: {
+                                        animation: 'spring',
+                                        config: {
+                                            stiffness: 1000,
+                                            damping: 500,
+                                            mass: 3,
+                                            overshootClamping: true,
+                                            restDisplacementThreshold: 0.01,
+                                            restSpeedThreshold: 0.01,
+                                        },
+                                    },
                                 },
-                            },
-                            close: {
-                                animation: 'spring',
-                                config: {
-                                    stiffness: 1000,
-                                    damping: 500,
-                                    mass: 3,
-                                    overshootClamping: true,
-                                    restDisplacementThreshold: 0.01,
-                                    restSpeedThreshold: 0.01,
-                                },
-                            },
-                        },
-                    }}
-                >
-                    <Stack.Screen name="Welcome" component={WelcomeScreen} />
-                    <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
-                    <Stack.Screen name="Main" component={MainTabNavigator} />
-                    <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
-                    <Stack.Screen name="BuyCoins" component={BuyCoinsScreen} />
-                    <Stack.Screen name="Cashout" component={CashoutScreen} />
-                    <Stack.Screen name="TelebirrPayout" component={TelebirrPayoutScreen} />
-                    <Stack.Screen name="PayoutThankYou" component={PayoutThankYouScreen} />
-                    <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
-                    <Stack.Screen name="AddVibe" component={AddVibeScreen} />
-                    <Stack.Screen name="ExploreDetail" component={ExploreDetailScreen} />
-                </Stack.Navigator>
-            </NavigationContainer>
-            </AuthGuard>
-        </SafeAreaProvider>
+                            }}
+                        >
+                            <Stack.Screen name="Welcome" component={WelcomeScreen} />
+                            <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
+                            <Stack.Screen name="Main" component={MainTabNavigator} />
+                            <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
+                            <Stack.Screen name="BuyCoins" component={BuyCoinsScreen} />
+                            <Stack.Screen name="Cashout" component={CashoutScreen} />
+                            <Stack.Screen name="TelebirrPayout" component={TelebirrPayoutScreen} />
+                            <Stack.Screen name="PayoutThankYou" component={PayoutThankYouScreen} />
+                            <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+                            <Stack.Screen name="AddVibe" component={AddVibeScreen} />
+                            <Stack.Screen name="ExploreDetail" component={ExploreDetailScreen} />
+                        </Stack.Navigator>
+                    </NavigationContainer>
+                </AuthGuard>
+            </SafeAreaProvider>
         </GestureHandlerRootView>
     );
 }

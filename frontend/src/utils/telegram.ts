@@ -84,6 +84,8 @@ declare global {
                 close: () => void;
                 enableClosingConfirmation: () => void;
                 disableClosingConfirmation: () => void;
+                requestFullscreen: () => void;
+                exitFullscreen: () => void;
                 onEvent: (eventType: string, eventHandler: () => void) => void;
                 offEvent: (eventType: string, eventHandler: () => void) => void;
                 sendData: (data: string) => void;
@@ -127,7 +129,7 @@ export const getTelegramWebApp = () => {
 
 export const getTelegramInitData = (): string | null => {
     const webApp = getTelegramWebApp();
-    
+
     // Check if WebApp exists and has initData
     if (webApp) {
         // initData might be available directly
@@ -135,39 +137,39 @@ export const getTelegramInitData = (): string | null => {
             console.log('✅ Found initData in webApp.initData');
             return webApp.initData;
         }
-        
+
         // Check alternative properties that might contain initData
         const webAppAny = webApp as any;
-        
+
         // Some versions use different property names
         if (webAppAny.initDataRaw && webAppAny.initDataRaw.length > 0) {
             console.log('✅ Found initData in initDataRaw');
             return webAppAny.initDataRaw;
         }
-        
+
         if (webAppAny._initData && webAppAny._initData.length > 0) {
             console.log('✅ Found initData in _initData');
             return webAppAny._initData;
         }
-        
+
         // Check if initDataUnsafe has the raw data
         if (webAppAny.initDataUnsafe?._auth && webAppAny.initDataUnsafe._auth.length > 0) {
             console.log('✅ Found initData in initDataUnsafe._auth');
             return webAppAny.initDataUnsafe._auth;
         }
-        
+
         console.log('⚠️ webApp.initData is empty, checking other sources...');
     }
-    
+
     // Try to get from window object and URL (Telegram passes it in URL parameters)
     if (typeof window !== 'undefined') {
         const windowAny = window as any;
         const location = window.location;
         const fullUrl = location.href;
-        
+
         // Telegram passes initData in URL as a query parameter
         // Format: ?tgWebAppData=... or #tgWebAppData=...
-        
+
         // Check all possible URL patterns
         const patterns = [
             /[?&#]tgWebAppData=([^&]+)/,
@@ -175,7 +177,7 @@ export const getTelegramInitData = (): string | null => {
             /[?&#]_tgWebAppData=([^&]+)/,
             /[?&#]initData=([^&]+)/,
         ];
-        
+
         for (const pattern of patterns) {
             const match = fullUrl.match(pattern);
             if (match) {
@@ -186,7 +188,7 @@ export const getTelegramInitData = (): string | null => {
                 }
             }
         }
-        
+
         // Check query parameters directly
         const params = new URLSearchParams(location.search);
         for (const [key, value] of params.entries()) {
@@ -195,7 +197,7 @@ export const getTelegramInitData = (): string | null => {
                 return decodeURIComponent(value);
             }
         }
-        
+
         // Check hash
         const hash = location.hash;
         if (hash) {
@@ -207,13 +209,13 @@ export const getTelegramInitData = (): string | null => {
                 }
             }
         }
-        
+
         // Check if Telegram stores initData in window
         if (windowAny.tgWebAppData) {
             console.log('✅ Found initData in window.tgWebAppData');
             return windowAny.tgWebAppData;
         }
-        
+
         // Check document.referrer
         if (document.referrer) {
             for (const pattern of patterns) {
@@ -224,13 +226,13 @@ export const getTelegramInitData = (): string | null => {
                 }
             }
         }
-        
+
         // Log full URL for debugging
         console.log('🔍 Full URL being checked:', fullUrl);
         console.log('🔍 Search params:', location.search);
         console.log('🔍 Hash:', location.hash);
     }
-    
+
     console.warn('❌ initData not found in any source');
     return null;
 };
@@ -246,15 +248,15 @@ export const initializeTelegramWebApp = (options?: { enableFullscreen?: boolean 
         // Initialize Telegram WebApp
         webApp.ready();
         webApp.expand();
-        
+
         // Enable closing confirmation
         webApp.enableClosingConfirmation();
-        
+
         // Set viewport height
         if (webApp.viewportHeight) {
             document.documentElement.style.setProperty('--tg-viewport-height', `${webApp.viewportHeight}px`);
         }
-        
+
         // Don't call requestFullscreen - Telegram handles fullscreen automatically
         // when the Mini App is opened. Calling it manually causes errors in some versions.
         // Fullscreen is already active if opened from Telegram.
@@ -269,36 +271,36 @@ const normalizeUrl = (url: string): string => {
 // Check if running in Telegram WebApp
 export const isTelegramWebApp = (): boolean => {
     if (typeof window === 'undefined') return false;
-    
+
     // Check if Telegram WebApp object exists
     if (window.Telegram?.WebApp) {
         return true;
     }
-    
+
     // Check URL parameters (handle both with and without trailing slash)
     const url = normalizeUrl(window.location.href);
     const search = window.location.search;
     const hash = window.location.hash;
-    
+
     if (search.includes('tgWebApp') || hash.includes('tgWebApp')) {
         return true;
     }
-    
+
     // Check if URL matches Telegram Mini App pattern
     // Telegram may add parameters to the URL
     if (url.includes('tgWebApp') || search.includes('tgWebAppData')) {
         return true;
     }
-    
+
     // Check user agent (Telegram's in-app browser has specific user agent)
     const ua = navigator.userAgent;
-    if (ua.includes('Telegram') || 
+    if (ua.includes('Telegram') ||
         ua.includes('TelegramBot') ||
         // Telegram iOS uses WebKit with specific patterns
         (ua.includes('iPhone') && (search.includes('tgWebApp') || hash.includes('tgWebApp')))) {
         return true;
     }
-    
+
     return false;
 };
 
@@ -317,19 +319,19 @@ export const getTelegramDebugInfo = () => {
         hash: typeof window !== 'undefined' ? window.location.hash : 'N/A',
         isTelegramWebApp: isTelegramWebApp(),
     };
-    
+
     // Check for initData in various places
     if (webApp) {
         info.initDataRaw = webApp.initData || '';
         info.hasInitDataUnsafe = !!webApp.initDataUnsafe;
         info.hasUser = !!webApp.initDataUnsafe?.user;
-        
+
         // Log all available WebApp properties for debugging
         if (typeof webApp === 'object') {
             info.availableProperties = Object.keys(webApp).slice(0, 20); // First 20 properties
             info.totalProperties = Object.keys(webApp).length;
         }
-        
+
         // Check initDataUnsafe structure
         if (webApp.initDataUnsafe) {
             info.initDataUnsafeKeys = Object.keys(webApp.initDataUnsafe);
@@ -339,23 +341,23 @@ export const getTelegramDebugInfo = () => {
                 username: webApp.initDataUnsafe.user.username,
             } : null;
         }
-        
+
         // Try to get from URL
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
             info.urlHasTgWebAppData = params.has('tgWebAppData');
-            
+
             const hash = window.location.hash;
             info.hashHasTgWebAppData = hash.includes('tgWebAppData');
         }
     }
-    
+
     // Determine if actually in Telegram browser
-    info.isInTelegramBrowser = info.platform !== 'unknown' && 
-                               (info.platform === 'ios' || 
-                                info.platform === 'android' || 
-                                info.platform === 'tdesktop');
-    
+    info.isInTelegramBrowser = info.platform !== 'unknown' &&
+        (info.platform === 'ios' ||
+            info.platform === 'android' ||
+            info.platform === 'tdesktop');
+
     return info;
 };
 
