@@ -226,7 +226,6 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 			} else {
 				log.Printf("✅ Created new user: ID=%s, TelegramID=%d", user.ID, user.TelegramID)
 			}
-			log.Printf("✅ Created new user: ID=%s, TelegramID=%d", user.ID, user.TelegramID)
 		} else {
 			log.Printf("❌ Database error: %v", result.Error)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -256,26 +255,32 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 		})
 	}
 
+	log.Printf("🔑 Generating JWT tokens for user ID: %s", user.ID)
 	tokens, err := utils.CreateToken(user.ID, h.cfg.JWTSecret)
 	if err != nil {
 		log.Printf("❌ Failed to generate tokens: %v", err)
+		log.Printf("❌ Error type: %T", err)
+		log.Printf("❌ User ID: %s, JWT Secret length: %d", user.ID, len(h.cfg.JWTSecret))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Could not generate tokens",
 			"details": err.Error(),
 		})
 	}
+	log.Printf("✅ JWT tokens generated successfully")
 
 	// 5. Return Response
-	return c.JSON(fiber.Map{
+	log.Printf("✅ Login successful for user ID: %s, TelegramID: %d", user.ID, user.TelegramID)
+	response := fiber.Map{
 		"access_token":  tokens.AccessToken,
 		"refresh_token": tokens.RefreshToken,
 		"user": fiber.Map{
 			"id":          user.ID,
 			"name":        user.Name,
 			"is_verified": user.IsVerified,
-			"has_profile": user.City != "", // Simple check if onboarding is done
+			"has_profile": user.City != "" && user.City != "Not Set", // Simple check if onboarding is done
 		},
-	})
+	}
+	return c.JSON(response)
 }
 
 // RefreshToken handles token refresh
