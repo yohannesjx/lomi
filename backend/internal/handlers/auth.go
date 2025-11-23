@@ -1,8 +1,13 @@
 package handlers
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -214,5 +219,180 @@ func RefreshToken(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"access_token":  tokens.AccessToken,
 		"refresh_token": tokens.RefreshToken,
+	})
+}
+
+// TelegramWidgetLogin handles Telegram Login Widget authentication
+// See: https://core.telegram.org/widgets/login
+// This accepts query parameters: id, first_name, last_name, username, photo_url, auth_date, hash
+func (h *AuthHandler) TelegramWidgetLogin(c *fiber.Ctx) error {
+	log.Printf("🔐 Widget login request received. Method: %s, Path: %s, IP: %s", 
+		c.Method(), c.Path(), c.IP())
+	
+	// Get parameters from query string (redirect method) or request body (callback method)
+	var params map[string]string
+	
+	if c.Method() == "GET" {
+		// Redirect method - parameters in query string
+		params = make(map[string]string)
+		for key, values := range c.Queries() {
+			if len(values) > 0 {
+				params[key] = values[0]
+			}
+		}
+		log.Printf("📋 Query params: %+v", params)
+	} else {
+		// POST method - parameters in body (callback method)
+		if err := c.BodyParser(&params); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid request body",
+				"details": err.Error(),
+			})
+		}
+		log.Printf("📋 Body params: %+v", params)
+	}
+	
+	// Extract required fields
+	idStr := params["id"]
+	firstName := params["first_name"]
+	lastName := params["last_name"]
+	username := params["username"]
+	photoURL := params["photo_url"]
+	authDateStr := params["auth_date"]
+	hash := params["hash"]
+	
+	if idStr == "" || hash == "" || authDateStr == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Missing required parameters: id, hash, auth_date",
+		})
+	}
+	
+	// Parse user ID
+	userID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
+	
+	// Parse auth date
+	authDate, err := strconv.ParseInt(authDateStr, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid auth_date",
+		})
+	}
+	
+	// Check expiration (1 hour)
+	authTime := time.Unix(authDate, 0)
+	if time.Since(authTime) > time.Hour {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Authentication data expired",
+		})
+	}
+	
+	// Verify hash according to Telegram Login Widget spec
+	// Data-check-string: all fields sorted alphabetically, format: key=value\nkey=value
+	// Secret key: SHA256(bot_token)
+	// Hash: hex(HMAC-SHA256(data_check_string, secret_key))
+	
+	// Build data-check-string (excluding hash itself)
+	dataCheckMap := make(map[string]string)
+	for k, v := range params {
+		if k != "hash" {
+			dataCheckMap[k] = v
+		}
+	}
+	
+	// Sort keys alphabetically
+	var keys []string
+	for k := range dataCheckMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	
+	// Create data-check-string
+	var dataCheckArr []string
+	for _, k := range keys {
+		dataCheckArr = append(dataCheckArr, fmt.Sprintf("%s=%s", k, dataCheckMap[k]))
+	}
+	dataCheckString := strings.Join(dataCheckArr, "\n")
+	
+	// Compute secret key: SHA256(bot_token)
+	secretKeyHash := sha256.Sum256([]byte(h.cfg.TelegramBotToken))
+	secretKey := secretKeyHash[:]
+	
+	// Compute HMAC-SHA256
+	h := hmac.New(sha256.New, secretKey)
+	h.Write([]byte(dataCheckString))
+	computedHash := hex.EncodeToString(h.Sum(nil))
+	
+	// Compare hashes
+	if computedHash != hash {
+		log.Printf("❌ Hash verification failed. Expected: %s, Got: %s", hash, computedHash)
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid hash: signature verification failed",
+		})
+	}
+	
+	log.Printf("✅ Hash verified successfully for user ID: %d", userID)
+	
+	// Create TelegramUser from widget data
+	tgUser := &utils.TelegramUser{
+		ID:           userID,
+		FirstName:    firstName,
+		LastName:     lastName,
+		Username:     username,
+		LanguageCode: "", // Widget doesn't provide this
+		IsPremium:    false, // Widget doesn't provide this
+	}
+	
+	// Find or Create User (same logic as Mini App login)
+	var user models.User
+	result := database.DB.Where("telegram_id = ?", tgUser.ID).First(&user)
+	
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			// Create new user
+			user = models.User{
+				TelegramID:        tgUser.ID,
+				TelegramUsername:  tgUser.Username,
+				TelegramFirstName: tgUser.FirstName,
+				TelegramLastName:  tgUser.LastName,
+				Name:              tgUser.FirstName,
+				IsActive:          true,
+			}
+			if err := database.DB.Create(&user).Error; err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not create user"})
+			}
+		} else {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Database error"})
+		}
+	} else {
+		// Update existing user info
+		updates := models.User{
+			TelegramUsername:  tgUser.Username,
+			TelegramFirstName: tgUser.FirstName,
+			TelegramLastName:  tgUser.LastName,
+		}
+		database.DB.Model(&user).Updates(updates)
+	}
+	
+	// Generate JWT Tokens
+	tokens, err := utils.CreateToken(user.ID, h.cfg.JWTSecret)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not generate tokens"})
+	}
+	
+	// Return response
+	return c.JSON(fiber.Map{
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
+		"user": fiber.Map{
+			"id":          user.ID,
+			"name":        user.Name,
+			"is_verified": user.IsVerified,
+			"has_profile": user.City != "",
+		},
 	})
 }
