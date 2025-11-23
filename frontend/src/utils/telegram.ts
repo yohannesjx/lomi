@@ -1,7 +1,7 @@
 // Telegram WebApp SDK integration
 // This works in Telegram Mini App environment
 
-import React from 'react';
+import { useState, useEffect } from 'react';
 
 declare global {
     interface Window {
@@ -246,9 +246,9 @@ export const isFullscreen = (): boolean => {
  * Returns functions to toggle fullscreen and check current state
  */
 export const useTelegramFullscreen = () => {
-    const [isFullscreenMode, setIsFullscreenMode] = React.useState(false);
+    const [isFullscreenMode, setIsFullscreenMode] = useState(false);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const webApp = getTelegramWebApp();
         if (webApp) {
             // Check initial state
