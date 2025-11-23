@@ -86,10 +86,22 @@ Go subscriber updates DB + sends grouped push notification
 ./test-phase2-moderation.sh 9
 ```
 
-### Phase 3 (Monitoring):
-1. Add `GET /admin/queue-stats` endpoint
-2. Log every moderation result with scores
-3. Dashboard for pending/rejected photos
+### Phase 3 (Monitoring) - **✅ COMPLETED**:
+1. ✅ **GET /admin/queue-stats** endpoint - Queue statistics and 24h metrics
+2. ✅ **Enhanced logging** - Every moderation result logged with scores
+3. ✅ **GET /admin/moderation/dashboard** - Dashboard for pending/rejected/approved photos
+
+**New Endpoints:**
+```bash
+# Get queue statistics
+GET /api/v1/admin/queue-stats
+# Returns: queue length, pending media, 24h stats, rejection reasons
+
+# Get moderation dashboard
+GET /api/v1/admin/moderation/dashboard?status=pending&page=1&limit=20
+# Returns: paginated list of media with moderation details
+# Status filter: all, pending, rejected, approved
+```
 
 ## 🔑 Key Files
 
@@ -161,7 +173,7 @@ docker-compose -f docker-compose.prod.yml --env-file .env.production up -d --sca
 ## ⚠️ What Needs Fixing
 
 ✅ ~~End-to-end test not completed~~ **COMPLETED** - Phase 2 test successful!  
-❌ Monitoring dashboard not implemented  
+✅ ~~Monitoring dashboard not implemented~~ **COMPLETED** - Phase 3 monitoring endpoints added!  
 
 ---
 
