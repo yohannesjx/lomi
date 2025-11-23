@@ -105,6 +105,12 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                         blob = await response.blob();
                     }
                     
+                    console.log('📤 Uploading to R2...', {
+                        url: upload_url.substring(0, 100) + '...',
+                        blobSize: blob.size,
+                        contentType: blob.type,
+                    });
+
                     const uploadResponse = await fetch(upload_url, {
                         method: 'PUT',
                         body: blob,
@@ -113,16 +119,36 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                         },
                     });
 
+                    console.log('📤 Upload response:', {
+                        status: uploadResponse.status,
+                        statusText: uploadResponse.statusText,
+                        ok: uploadResponse.ok,
+                        headers: Object.fromEntries(uploadResponse.headers.entries()),
+                    });
+
                     if (!uploadResponse.ok) {
                         const errorText = await uploadResponse.text().catch(() => 'Unknown error');
+                        console.error('❌ Upload failed:', {
+                            status: uploadResponse.status,
+                            statusText: uploadResponse.statusText,
+                            errorText,
+                            url: upload_url.substring(0, 100),
+                        });
                         throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
                     }
+
+                    console.log('✅ Upload to R2 successful');
                 } catch (error: any) {
                     console.error('Web upload error:', error);
                     throw new Error(`Upload failed: ${error.message || 'Unknown error'}`);
                 }
             } else {
                 // React Native: Use FileSystem.uploadAsync (recommended)
+                console.log('📤 Uploading to R2 (React Native)...', {
+                    url: upload_url.substring(0, 100) + '...',
+                    localUri,
+                });
+
                 const uploadResult = await FileSystem.uploadAsync(upload_url, localUri, {
                     httpMethod: 'PUT',
                     headers: {
@@ -130,9 +156,21 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                     },
                 });
 
+                console.log('📤 Upload response (RN):', {
+                    status: uploadResult.status,
+                    body: uploadResult.body?.substring(0, 200),
+                });
+
                 if (uploadResult.status !== 200 && uploadResult.status !== 204) {
+                    console.error('❌ Upload failed (RN):', {
+                        status: uploadResult.status,
+                        body: uploadResult.body,
+                        url: upload_url.substring(0, 100),
+                    });
                     throw new Error(`Upload failed with status ${uploadResult.status}: ${uploadResult.body || 'Unknown error'}`);
                 }
+
+                console.log('✅ Upload to R2 successful (RN)');
             }
 
             // 3. Update photo data with file key (success)
@@ -195,8 +233,10 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             for (let i = 0; i < photos.length; i++) {
                 const photo = photos[i];
                 if (photo.fileKey) {
-                    await UserService.uploadMedia({
-                        media_type: 'photo',
+                    console.log(`📸 Creating media record ${i + 1}/${uploadedPhotos.length} - FileKey: ${photo.fileKey}`);
+                    try {
+                        await UserService.uploadMedia({
+                            media_type: 'photo',
                         file_key: photo.fileKey,
                         display_order: i + 1,
                     });
