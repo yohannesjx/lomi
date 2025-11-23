@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	initdata "github.com/telegram-mini-apps/init-data-golang"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +28,11 @@ func NewAuthHandler(cfg *config.Config) *AuthHandler {
 
 func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 	// Log incoming request for debugging
-	log.Printf("Login request received. Method: %s, Path: %s, IP: %s", c.Method(), c.Path(), c.IP())
+	log.Printf("🔐 Login request received. Method: %s, Path: %s, OriginalURL: %s, IP: %s", 
+		c.Method(), c.Path(), c.OriginalURL(), c.IP())
+	log.Printf("📋 Headers: %+v", c.GetReqHeaders())
+	log.Printf("📋 Content-Type: %s", c.Get("Content-Type"))
+	log.Printf("📋 Authorization header present: %v", c.Get("Authorization") != "")
 
 	// Get initData from Authorization header (Telegram Mini Apps SDK approach)
 	// Format: "tma <initData>" as per official documentation
@@ -84,17 +89,45 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 		})
 	}
 
-	// 1. Validate Telegram Data (following official Telegram Mini Apps SDK pattern)
+	// 1. Validate Telegram Data using official library
 	// Consider initData valid for 1 hour from creation moment
-	tgUser, err := utils.ValidateTelegramInitData(initData, h.cfg.TelegramBotToken, time.Hour)
+	err := initdata.Validate(initData, h.cfg.TelegramBotToken, time.Hour)
 	if err != nil {
+		log.Printf("❌ InitData validation failed: %v", err)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error":   "Invalid Telegram data",
 			"details": err.Error(),
 		})
 	}
 
-	// 2. Find or Create User
+	// 2. Parse initData to get user information
+	parsedData, err := initdata.Parse(initData)
+	if err != nil {
+		log.Printf("❌ InitData parsing failed: %v", err)
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":   "Failed to parse Telegram data",
+			"details": err.Error(),
+		})
+	}
+
+	// Extract user from parsed data
+	// parsedData.User is a pointer, check if it exists
+	if parsedData.User == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User data missing in initData",
+		})
+	}
+
+	tgUser := &utils.TelegramUser{
+		ID:           parsedData.User.ID,
+		FirstName:    parsedData.User.FirstName,
+		LastName:     parsedData.User.LastName,
+		Username:     parsedData.User.Username,
+		LanguageCode: parsedData.User.LanguageCode,
+		IsPremium:    parsedData.User.IsPremium,
+	}
+
+	// 3. Find or Create User
 	var user models.User
 	result := database.DB.Where("telegram_id = ?", tgUser.ID).First(&user)
 
@@ -126,13 +159,13 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 		database.DB.Model(&user).Updates(updates)
 	}
 
-	// 3. Generate JWT Tokens
+	// 4. Generate JWT Tokens
 	tokens, err := utils.CreateToken(user.ID, h.cfg.JWTSecret)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not generate tokens"})
 	}
 
-	// 4. Return Response
+	// 5. Return Response
 	return c.JSON(fiber.Map{
 		"access_token":  tokens.AccessToken,
 		"refresh_token": tokens.RefreshToken,
