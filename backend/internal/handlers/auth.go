@@ -550,15 +550,22 @@ func (h *AuthHandler) TelegramWidgetLogin(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not generate tokens"})
 	}
 	
-	// Return response
-	return c.JSON(fiber.Map{
-		"access_token":  tokens.AccessToken,
-		"refresh_token": tokens.RefreshToken,
-		"user": fiber.Map{
-			"id":          user.ID,
-			"name":        user.Name,
-			"is_verified": user.IsVerified,
-			"has_profile": user.City != "",
-		},
-	})
+	// For Telegram Login Widget, we need to redirect back to frontend with tokens
+	// The widget does a GET redirect, so we redirect to frontend with tokens in URL hash
+	frontendURL := c.Get("Origin")
+	if frontendURL == "" {
+		// Fallback to config or default
+		frontendURL = "https://lomi.social"
+	}
+	
+	// Encode tokens in URL hash (more secure than query params)
+	redirectURL := fmt.Sprintf("%s/#access_token=%s&refresh_token=%s&user_id=%s",
+		frontendURL,
+		tokens.AccessToken,
+		tokens.RefreshToken,
+		user.ID.String(),
+	)
+	
+	log.Printf("✅ Widget login successful, redirecting to: %s", frontendURL)
+	return c.Redirect(redirectURL, fiber.StatusFound)
 }

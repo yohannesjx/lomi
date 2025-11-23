@@ -17,6 +17,15 @@ export const WelcomeScreen = ({ navigation }: any) => {
     useEffect(() => {
         // Handle Telegram Widget OAuth callback (for web browsers)
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            // Check for tokens in hash (redirect from backend)
+            const hash = window.location.hash;
+            if (hash.includes('access_token=')) {
+                console.log('🔐 Handling widget redirect with tokens');
+                handleWidgetCallback(new URLSearchParams());
+                return;
+            }
+
+            // Check for widget auth data in query params
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('id') && urlParams.has('hash') && urlParams.has('auth_date')) {
                 console.log('🔐 Handling Telegram Widget OAuth callback');
@@ -116,6 +125,58 @@ export const WelcomeScreen = ({ navigation }: any) => {
 
     const handleWidgetCallback = async (urlParams: URLSearchParams) => {
         try {
+            // Check if this is a redirect from backend with tokens in hash
+            if (typeof window !== 'undefined') {
+                const hash = window.location.hash;
+                if (hash.includes('access_token=')) {
+                    // Extract tokens from hash
+                    const hashParams = new URLSearchParams(hash.substring(1));
+                    const accessToken = hashParams.get('access_token');
+                    const refreshToken = hashParams.get('refresh_token');
+                    const userId = hashParams.get('user_id');
+
+                    if (accessToken && refreshToken) {
+                        console.log('🔐 Found tokens in URL hash from widget redirect');
+                        
+                        // Store tokens
+                        await useAuthStore.getState().setTokens({
+                            accessToken,
+                            refreshToken,
+                        });
+
+                        // Fetch user data
+                        const { api } = require('../../api/client');
+                        const userResponse = await api.get('/users/me');
+                        const user = userResponse.data;
+
+                        // Store user
+                        const { storage } = require('../../utils/storage');
+                        await storage.setItem('lomi_user', JSON.stringify(user));
+
+                        // Update store
+                        useAuthStore.setState({
+                            accessToken,
+                            refreshToken,
+                            user,
+                            isAuthenticated: true,
+                            isLoading: false,
+                        });
+
+                        // Clear URL hash
+                        window.history.replaceState({}, document.title, window.location.pathname);
+
+                        // Navigate based on user profile
+                        if (user?.has_profile) {
+                            navigation.navigate('Main');
+                        } else {
+                            navigation.navigate('ProfileSetup');
+                        }
+                        return;
+                    }
+                }
+            }
+
+            // Otherwise, this is the initial widget callback with auth data
             const authData = {
                 id: urlParams.get('id') || '',
                 first_name: urlParams.get('first_name') || '',
