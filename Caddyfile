@@ -56,6 +56,44 @@
 # Domain-based blocks (automatic HTTPS/SSL)
 # Use this when DNS is configured: https://lomi.social
 lomi.social, local.lomi {
+    # Handle API requests first (before file_server)
+    handle /api/* {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+        }
+    }
+    
+    # Handle WebSocket
+    handle /ws {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+        }
+    }
+    
+    # CORS headers for API
+    header {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    }
+    
+    # Handle preflight requests
+    @options {
+        method OPTIONS
+        path /api/*
+    }
+    handle @options {
+        header {
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+            Access-Control-Max-Age "3600"
+        }
+        respond 204
+    }
+    
     # Serve static files (if hosting frontend on server)
     # Update this path to where your frontend build is located
     root * /var/www/lomi-frontend
