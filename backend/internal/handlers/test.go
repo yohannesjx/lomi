@@ -26,4 +26,3 @@ func TestAuthEndpoint(c *fiber.Ctx) error {
 		"note":    "This endpoint accepts POST requests with Authorization: tma <initData>",
 	})
 }
-
