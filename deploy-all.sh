@@ -12,12 +12,15 @@ echo ""
 # Get project directory
 if [ -d "/opt/lomi_mini" ]; then
     PROJECT_DIR="/opt/lomi_mini"
-elif [ -d "~/lomi_mini" ]; then
-    PROJECT_DIR="~/lomi_mini"
+elif [ -d "/root/lomi_mini" ]; then
+    PROJECT_DIR="/root/lomi_mini"
+elif [ -d "$HOME/lomi_mini" ]; then
+    PROJECT_DIR="$HOME/lomi_mini"
 elif [ -d "." ] && [ -f "docker-compose.prod.yml" ]; then
     PROJECT_DIR="."
 else
     echo "❌ Error: Could not find project directory"
+    echo "   Checked: /opt/lomi_mini, /root/lomi_mini, $HOME/lomi_mini, ."
     exit 1
 fi
 
@@ -261,7 +264,12 @@ echo "  Frontend: http://152.53.87.200"
 echo "  API:      https://api.lomi.social/api/v1/health"
 echo ""
 echo "🐳 Docker containers:"
-docker-compose -f docker-compose.prod.yml --env-file .env.production ps
+if [ -f ".env.production" ]; then
+    docker-compose -f docker-compose.prod.yml --env-file .env.production ps
+else
+    echo "⚠️  .env.production not found, using environment variables"
+    docker-compose -f docker-compose.prod.yml ps
+fi
 echo ""
 
 # Final health check
