@@ -113,6 +113,12 @@ func GeneratePresignedUploadURL(ctx context.Context, bucket, key string, expires
 
 // GeneratePresignedDownloadURL generates a pre-signed URL for downloading from R2/S3
 func GeneratePresignedDownloadURL(ctx context.Context, bucket, key string, expiresIn time.Duration) (string, error) {
+	if S3Client == nil {
+		return "", fmt.Errorf("S3Client is not initialized")
+	}
+
+	log.Printf("🔗 Generating presigned download URL - Bucket: %s, Key: %s, ExpiresIn: %v", bucket, key, expiresIn)
+	
 	presignClient := s3.NewPresignClient(S3Client)
 
 	request, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
@@ -122,9 +128,11 @@ func GeneratePresignedDownloadURL(ctx context.Context, bucket, key string, expir
 		opts.Expires = expiresIn
 	})
 	if err != nil {
+		log.Printf("❌ Failed to generate presigned download URL: %v", err)
 		return "", fmt.Errorf("failed to generate presigned download URL: %w", err)
 	}
 
+	log.Printf("✅ Presigned download URL generated successfully (URL length: %d)", len(request.URL))
 	return request.URL, nil
 }
 
