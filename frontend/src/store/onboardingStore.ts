@@ -36,6 +36,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
     updateStep: async (step: number, completed?: boolean) => {
         try {
+            console.log(`📤 Updating onboarding step to ${step}...`);
             const status = await OnboardingService.updateProgress(step, completed);
             set({
                 onboardingStep: status.onboarding_step,
@@ -43,8 +44,14 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
                 progress: status.progress,
             });
             console.log(`✅ Onboarding step updated: ${step}, completed: ${status.onboarding_completed}`);
-        } catch (error) {
+            return status;
+        } catch (error: any) {
             console.error('❌ Failed to update onboarding step:', error);
+            console.error('Error details:', {
+                message: error?.message,
+                response: error?.response?.data,
+                status: error?.response?.status,
+            });
             throw error;
         }
     },

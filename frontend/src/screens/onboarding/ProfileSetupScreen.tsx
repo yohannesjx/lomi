@@ -27,7 +27,11 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
 
     const handleNext = async () => {
         // Validate inputs
-        if (!name || !age || !gender) return;
+        if (!name || !age || !gender) {
+            console.log('❌ Validation failed:', { name, age, gender });
+            Alert.alert('Complete All Fields', 'Please fill in your name, age, and select your gender.');
+            return;
+        }
 
         const ageNum = parseInt(age, 10);
         if (isNaN(ageNum) || ageNum < 18 || ageNum > 100) {
@@ -36,22 +40,42 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
         }
 
         setIsSaving(true);
+        console.log('🔄 Starting profile save...', { name: name.trim(), age: ageNum, gender });
+        
         try {
             // Save profile data
-            await UserService.updateProfile({
+            console.log('📤 Calling UserService.updateProfile...');
+            const profileResult = await UserService.updateProfile({
                 name: name.trim(),
                 age: ageNum,
                 gender,
             });
+            console.log('✅ Profile saved:', profileResult);
 
             // Update onboarding step to 1 (age & gender done)
+            console.log('📤 Updating onboarding step to 1...');
             await updateStep(1);
+            console.log('✅ Onboarding step updated');
 
             // Navigate to next step (city)
-            navigation.navigate('City');
+            console.log('🧭 Navigating to City screen...');
+            if (navigation && navigation.navigate) {
+                navigation.navigate('City');
+                console.log('✅ Navigation called');
+            } else {
+                console.error('❌ Navigation not available:', navigation);
+                Alert.alert('Navigation Error', 'Navigation is not available. Please refresh the app.');
+            }
         } catch (error: any) {
-            console.error('Save profile error:', error);
-            Alert.alert('Error', 'Failed to save profile. Please try again.');
+            console.error('❌ Save profile error:', error);
+            console.error('Error details:', {
+                message: error?.message,
+                response: error?.response?.data,
+                status: error?.response?.status,
+            });
+            
+            const errorMessage = error?.response?.data?.error || error?.message || 'Failed to save profile. Please try again.';
+            Alert.alert('Error', errorMessage);
         } finally {
             setIsSaving(false);
         }
