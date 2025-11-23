@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -7,19 +7,33 @@ import { COLORS, SPACING, SIZES } from '../../theme/colors';
 import { UserService } from '../../api/services';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useAuthStore } from '../../store/authStore';
+import { getTelegramWebApp } from '../../utils/telegram';
 
 export const ProfileSetupScreen = ({ navigation }: any) => {
     const [name, setName] = useState('');
     const [age, setAge] = useState('');
     const [gender, setGender] = useState<'male' | 'female' | null>(null);
+    const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const { updateStep } = useOnboardingStore();
     const { user } = useAuthStore();
 
     useEffect(() => {
-        // Load existing data if available
+        // Pre-fill from Telegram user data (available immediately)
+        const webApp = getTelegramWebApp();
+        if (webApp?.initDataUnsafe?.user) {
+            const tgUser = webApp.initDataUnsafe.user;
+            if (tgUser.first_name) {
+                setName(tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : ''));
+            }
+            if (tgUser.photo_url) {
+                setPhotoUrl(tgUser.photo_url);
+            }
+        }
+        
+        // Load existing data if available (from previous partial onboarding)
         if (user) {
-            if (user.name && user.name !== 'User') setName(user.name);
+            if (user.name && user.name !== 'User' && !name) setName(user.name);
             if (user.age && user.age > 18) setAge(user.age.toString());
             if (user.gender) setGender(user.gender);
         }
@@ -136,6 +150,13 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
                         <Text style={styles.subtitle}>This info will be shown on your profile</Text>
                     </View>
 
+                    {photoUrl && (
+                        <View style={styles.photoContainer}>
+                            <Image source={{ uri: photoUrl }} style={styles.photo} />
+                            <Text style={styles.photoLabel}>Your Telegram photo</Text>
+                        </View>
+                    )}
+
                     <View style={styles.form}>
                         <Input
                             label="Full Name"
@@ -242,5 +263,22 @@ const styles = StyleSheet.create({
     },
     footer: {
         marginTop: SPACING.xl,
+    },
+    photoContainer: {
+        alignItems: 'center',
+        marginBottom: SPACING.l,
+    },
+    photo: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        borderWidth: 3,
+        borderColor: COLORS.primary,
+        marginBottom: SPACING.s,
+    },
+    photoLabel: {
+        fontSize: 14,
+        color: COLORS.textSecondary,
+        fontStyle: 'italic',
     },
 });

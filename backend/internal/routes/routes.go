@@ -27,13 +27,8 @@ func SetupRoutes(app *fiber.App) {
 	// Public routes
 	authHandler := handlers.NewAuthHandler(config.Cfg)
 
-	// Telegram Mini App login (initData method)
+	// Telegram Mini App login (initData method) - Auto-authenticates on app open
 	api.Post("/auth/telegram", authHandler.TelegramLogin)
-
-	// Telegram Login Widget (redirect/callback method)
-	// Supports both GET (redirect) and POST (callback) methods
-	api.Get("/auth/telegram/widget", authHandler.TelegramWidgetLogin)
-	api.Post("/auth/telegram/widget", authHandler.TelegramWidgetLogin)
 
 	api.Post("/auth/refresh", handlers.RefreshToken) // TODO: Implement
 

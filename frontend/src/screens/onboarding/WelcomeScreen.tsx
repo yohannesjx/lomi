@@ -10,50 +10,33 @@ import { useAuthStore } from '../../store/authStore';
 const { width, height } = Dimensions.get('window');
 
 export const WelcomeScreen = ({ navigation }: any) => {
-    const { login, isLoading } = useAuthStore();
+    const { user, isLoading } = useAuthStore();
     const [tgUser, setTgUser] = useState<any>(null);
 
     useEffect(() => {
-        // Get Telegram user info immediately
+        // Get Telegram user info immediately (already authenticated by AuthGuard)
         const webApp = getTelegramWebApp();
         if (webApp?.initDataUnsafe?.user) {
             setTgUser(webApp.initDataUnsafe.user);
         }
-    }, []);
-
-    const handleStart = async () => {
-        try {
-            const initData = getTelegramInitData();
-            if (!initData) {
-                Alert.alert('Error', 'Could not authenticate with Telegram. Please try again.');
-                return;
-            }
-
-            await login(initData);
-
-            const user = useAuthStore.getState().user;
-            console.log('✅ User logged in successfully:', user?.id);
-            console.log('📊 Onboarding status:', user?.onboarding_completed);
-
-            if (user?.onboarding_completed) {
-                console.log('➡️ Navigating to Main');
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Main' }],
-                });
-            } else {
-                console.log('➡️ Navigating to Onboarding');
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Onboarding' }],
-                });
-            }
-
-        } catch (error: any) {
-            console.error('Login failed:', error);
-            Alert.alert('Login Failed', 'Please try again.');
+        
+        // If user is already authenticated, show welcome and navigate
+        if (user) {
+            setTimeout(() => {
+                if (user.onboarding_completed) {
+                    navigation?.reset({
+                        index: 0,
+                        routes: [{ name: 'Main' }],
+                    });
+                } else {
+                    navigation?.reset({
+                        index: 0,
+                        routes: [{ name: 'Onboarding' }],
+                    });
+                }
+            }, 2000); // Show welcome message for 2 seconds
         }
-    };
+    }, [user, navigation]);
 
     return (
         <View style={styles.container}>
@@ -89,6 +72,14 @@ export const WelcomeScreen = ({ navigation }: any) => {
                         </View>
                     )}
 
+                    {user && (
+                        <View style={styles.userInfoContainer}>
+                            <Text style={styles.coinBalance}>
+                                💰 {user.coins || 0} coins
+                            </Text>
+                        </View>
+                    )}
+
                     <Text style={styles.tagline}>
                         Find your <Text style={styles.highlight}>Lomi</Text> in Ethiopia
                     </Text>
@@ -97,13 +88,12 @@ export const WelcomeScreen = ({ navigation }: any) => {
                         Serious dating, culture, and fun.
                     </Text>
 
-                    <Button
-                        title={isLoading ? "Starting..." : "Let's Get Started"}
-                        onPress={handleStart}
-                        isLoading={isLoading}
-                        size="large"
-                        style={styles.button}
-                    />
+                    {isLoading && (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="small" color={COLORS.primary} />
+                            <Text style={styles.loadingText}>Setting up your profile...</Text>
+                        </View>
+                    )}
 
                     <Text style={styles.terms}>
                         By continuing, you agree to our Terms & Privacy Policy.
@@ -352,6 +342,16 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: COLORS.textPrimary,
+        textAlign: 'center',
+    },
+    userInfoContainer: {
+        alignItems: 'center',
+        marginBottom: SPACING.m,
+    },
+    coinBalance: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: COLORS.primary,
         textAlign: 'center',
     },
 });

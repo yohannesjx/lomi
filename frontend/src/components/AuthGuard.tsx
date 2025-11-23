@@ -48,10 +48,35 @@ export const AuthGuard: React.FC<{
                 return;
             }
 
-            // Step 2: No stored tokens - show Welcome Screen
-            // We don't auto-login here anymore. We let the WelcomeScreen handle it
-            // via the "Let's Get Started" button.
-            console.log('ℹ️ No stored tokens - showing Welcome Screen');
+            // Step 2: Auto-authenticate using Telegram Mini App initData
+            // Telegram automatically injects initDataUnsafe.user when Mini App opens
+            if (isTelegramWebApp()) {
+                const initData = getTelegramInitData();
+                if (initData) {
+                    console.log('🔐 Auto-authenticating with Telegram initData...');
+                    try {
+                        await login(initData);
+                        console.log('✅ Auto-authentication successful');
+                        handlePostAuthRouting();
+                        setIsCheckingAuth(false);
+                        return;
+                    } catch (loginError: any) {
+                        console.error('❌ Auto-authentication failed:', loginError);
+                        setAuthError(loginError?.response?.data?.error || loginError?.message || 'Authentication failed');
+                        setIsCheckingAuth(false);
+                        return;
+                    }
+                } else {
+                    console.warn('⚠️ In Telegram but no initData available');
+                    setAuthError('Telegram authentication data not available. Please restart the app.');
+                    setIsCheckingAuth(false);
+                    return;
+                }
+            }
+
+            // Step 3: Not in Telegram - show error
+            console.warn('⚠️ App not opened from Telegram');
+            setAuthError('Please open this app from Telegram');
             setIsCheckingAuth(false);
 
         } catch (error: any) {

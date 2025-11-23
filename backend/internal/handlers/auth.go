@@ -331,10 +331,10 @@ func RefreshToken(c *fiber.Ctx) error {
 	})
 }
 
-// TelegramWidgetLogin handles Telegram Login Widget authentication
-// See: https://core.telegram.org/widgets/login
-// This accepts query parameters: id, first_name, last_name, username, photo_url, auth_date, hash
-func (h *AuthHandler) TelegramWidgetLogin(c *fiber.Ctx) error {
+// TelegramWidgetLogin - REMOVED: No longer needed
+// Telegram Mini Apps auto-inject initData, so widget login is obsolete
+// This function is kept for reference but routes are removed
+func (h *AuthHandler) TelegramWidgetLogin_DEPRECATED(c *fiber.Ctx) error {
 	log.Printf("🔐 Widget login request received. Method: %s, Path: %s, IP: %s",
 		c.Method(), c.Path(), c.IP())
 
