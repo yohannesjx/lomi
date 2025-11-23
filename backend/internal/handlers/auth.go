@@ -265,15 +265,14 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 				log.Printf("✅ Created new user: ID=%s, TelegramID=%d", user.ID, user.TelegramID)
 			}
 
-			// Save profile photo if available (only for newly created users)
-			if user.ID != uuid.Nil && tgUser.PhotoURL != "" {
-				if tgUser.PhotoURL != "" {
+				// Save profile photo if available (only for newly created users)
+				if user.ID != uuid.Nil && tgUser.PhotoURL != "" {
 					media := models.Media{
 						UserID:       user.ID,
 						MediaType:    models.MediaTypePhoto,
 						URL:          tgUser.PhotoURL,
 						DisplayOrder: 1,
-						IsApproved:   true, // Auto-approve Telegram profile photos? Maybe safe.
+						IsApproved:   true, // Auto-approve Telegram profile photos
 					}
 					if err := database.DB.Create(&media).Error; err != nil {
 						log.Printf("⚠️ Failed to save Telegram profile photo: %v", err)
