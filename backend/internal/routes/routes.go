@@ -17,6 +17,12 @@ func SetupRoutes(app *fiber.App) {
 		return c.JSON(fiber.Map{"status": "ok", "message": "Lomi Backend is running 🍋"})
 	})
 
+	// Test endpoints for debugging
+	api.Get("/test", handlers.TestEndpoint)
+	api.Post("/test", handlers.TestEndpoint)
+	api.Get("/test/auth", handlers.TestAuthEndpoint)
+	api.Post("/test/auth", handlers.TestAuthEndpoint)
+
 	// Public routes
 	authHandler := handlers.NewAuthHandler(config.Cfg)
 	
