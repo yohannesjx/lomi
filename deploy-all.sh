@@ -40,8 +40,9 @@ echo ""
 
 # Step 1: Pull latest code
 echo "📥 Step 1: Pulling latest code from GitHub..."
-git pull origin main
-echo "✅ Code updated"
+git fetch origin
+git reset --hard origin/main
+echo "✅ Code updated (reset to match GitHub exactly)"
 echo ""
 
 # Step 2: Restart backend (Docker containers)
