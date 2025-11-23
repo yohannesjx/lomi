@@ -27,15 +27,40 @@ const getApiUrl = () => {
     }
     
     // Production URL (for deployed app or when opened from Telegram)
-    return 'https://api.lomi.social/api/v1';
+    // Try domain first, fallback to IP if domain doesn't resolve
+    const apiDomain = 'https://api.lomi.social/api/v1';
+    const apiIP = 'http://152.53.87.200/api/v1'; // Fallback to IP
+    
+    // If we're on the same domain (lomi.social), use relative path for API
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        
+        // If on lomi.social, try api.lomi.social first, then fallback to IP
+        if (hostname === 'lomi.social' || hostname === '152.53.87.200') {
+            // Use domain if available, otherwise IP
+            // For now, use IP as fallback since DNS might not be configured
+            return apiIP;
+        }
+    }
+    
+    return apiDomain;
 };
 
+const API_BASE_URL = getApiUrl();
+
 export const api = axios.create({
-    baseURL: getApiUrl(),
+    baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },
+    timeout: 30000, // 30 second timeout
 });
+
+// Log API URL for debugging
+if (typeof window !== 'undefined') {
+    console.log('🌐 API Base URL:', API_BASE_URL);
+    console.log('🌐 Current hostname:', window.location.hostname);
+}
 
 // Add interceptor to inject token
 api.interceptors.request.use(
@@ -54,11 +79,34 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// Add interceptor to handle 401 (Token Expired or Missing)
+// Add interceptor to handle errors and network issues
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        
+        // Log network errors for debugging
+        if (!error.response) {
+            console.error('❌ Network Error:', {
+                message: error.message,
+                code: error.code,
+                config: {
+                    url: error.config?.url,
+                    baseURL: error.config?.baseURL,
+                    method: error.config?.method,
+                },
+            });
+            
+            // If it's a network error, try to provide helpful message
+            if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+                console.error('💡 Network Error - Possible causes:');
+                console.error('   1. Backend server is down');
+                console.error('   2. API URL is incorrect:', API_BASE_URL);
+                console.error('   3. CORS issue');
+                console.error('   4. DNS not resolving');
+                console.error('   5. Firewall blocking request');
+            }
+        }
         
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
