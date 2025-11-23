@@ -86,7 +86,8 @@ for i in $(seq 1 $NUM_PHOTOS); do
     fi
     
     # Extract upload_url and file_key (works without jq)
-    UPLOAD_URL=$(echo "$UPLOAD_RESPONSE" | grep -o '"upload_url":"[^"]*"' | cut -d'"' -f4)
+    # Handle escaped characters in JSON (like \u0026 for &)
+    UPLOAD_URL=$(echo "$UPLOAD_RESPONSE" | grep -o '"upload_url":"[^"]*"' | cut -d'"' -f4 | sed 's/\\u0026/\&/g' | sed 's/\\\//\//g')
     FILE_KEY=$(echo "$UPLOAD_RESPONSE" | grep -o '"file_key":"[^"]*"' | cut -d'"' -f4)
     
     if [ -z "$UPLOAD_URL" ] || [ "$UPLOAD_URL" = "null" ]; then
