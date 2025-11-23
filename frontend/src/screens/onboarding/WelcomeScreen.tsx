@@ -23,6 +23,31 @@ export const WelcomeScreen = ({ navigation }: any) => {
                 handleWidgetCallback(urlParams);
                 return;
             }
+
+            // Load Telegram Widget script for web browsers
+            if (isWebBrowser) {
+                const script = document.createElement('script');
+                script.src = 'https://telegram.org/js/telegram-widget.js?22';
+                script.async = true;
+                script.setAttribute('data-telegram-login', 'lomi_social_bot');
+                script.setAttribute('data-size', 'large');
+                script.setAttribute('data-auth-url', `${window.location.origin}/api/v1/auth/telegram/widget`);
+                script.setAttribute('data-request-access', 'write');
+                script.setAttribute('data-userpic', 'true');
+                script.setAttribute('data-radius', '12');
+                
+                const widgetContainer = document.getElementById('telegram-login-widget');
+                if (widgetContainer) {
+                    widgetContainer.innerHTML = '';
+                    widgetContainer.appendChild(script);
+                }
+
+                return () => {
+                    if (widgetContainer) {
+                        widgetContainer.innerHTML = '';
+                    }
+                };
+            }
         }
         // Early detection: Check if we're in Telegram BEFORE doing anything else
         if (Platform.OS === 'web') {
@@ -428,21 +453,7 @@ export const WelcomeScreen = ({ navigation }: any) => {
                     {/* Show Telegram Login Widget for web browsers */}
                     {Platform.OS === 'web' && isWebBrowser && (
                         <View style={styles.widgetContainer}>
-                            <div
-                                id="telegram-login-widget"
-                                dangerouslySetInnerHTML={{
-                                    __html: `
-                                        <script async src="https://telegram.org/js/telegram-widget.js?22"
-                                            data-telegram-login="lomi_social_bot"
-                                            data-size="large"
-                                            data-auth-url="${typeof window !== 'undefined' ? window.location.origin : 'https://lomi.social'}/api/v1/auth/telegram/widget"
-                                            data-request-access="write"
-                                            data-userpic="true"
-                                            data-radius="12">
-                                        </script>
-                                    `,
-                                }}
-                            />
+                            <div id="telegram-login-widget" style={{ minHeight: 50 }} />
                         </View>
                     )}
 
