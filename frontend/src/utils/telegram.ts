@@ -211,10 +211,64 @@ export const initializeTelegramWebApp = (options?: { enableFullscreen?: boolean 
 
 // Check if running in Telegram WebApp
 export const isTelegramWebApp = (): boolean => {
-    return typeof window !== 'undefined' && 
-           (window.Telegram?.WebApp !== undefined || 
-            window.location.search.includes('tgWebAppData') ||
-            navigator.userAgent.includes('Telegram'));
+    if (typeof window === 'undefined') return false;
+    
+    // Check if Telegram WebApp object exists
+    if (window.Telegram?.WebApp) {
+        return true;
+    }
+    
+    // Check URL parameters
+    if (window.location.search.includes('tgWebApp') || 
+        window.location.hash.includes('tgWebApp')) {
+        return true;
+    }
+    
+    // Check user agent (Telegram's in-app browser has specific user agent)
+    const ua = navigator.userAgent;
+    if (ua.includes('Telegram') || 
+        ua.includes('TelegramBot') ||
+        // Telegram iOS uses WebKit with specific patterns
+        (ua.includes('iPhone') && window.location.search.includes('tgWebApp'))) {
+        return true;
+    }
+    
+    return false;
+};
+
+// Get detailed Telegram WebApp info for debugging
+export const getTelegramDebugInfo = () => {
+    const webApp = getTelegramWebApp();
+    const info: any = {
+        webAppExists: !!webApp,
+        hasInitData: !!(webApp?.initData && webApp.initData.length > 0),
+        initDataLength: webApp?.initData?.length || 0,
+        platform: webApp?.platform || 'unknown',
+        version: webApp?.version || 'unknown',
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+        url: typeof window !== 'undefined' ? window.location.href : 'N/A',
+        search: typeof window !== 'undefined' ? window.location.search : 'N/A',
+        hash: typeof window !== 'undefined' ? window.location.hash : 'N/A',
+        isTelegramWebApp: isTelegramWebApp(),
+    };
+    
+    // Check for initData in various places
+    if (webApp) {
+        info.initDataRaw = webApp.initData || '';
+        info.hasInitDataUnsafe = !!webApp.initDataUnsafe;
+        info.hasUser = !!webApp.initDataUnsafe?.user;
+        
+        // Try to get from URL
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            info.urlHasTgWebAppData = params.has('tgWebAppData');
+            
+            const hash = window.location.hash;
+            info.hashHasTgWebAppData = hash.includes('tgWebAppData');
+        }
+    }
+    
+    return info;
 };
 
 export const useTelegramHaptic = () => {

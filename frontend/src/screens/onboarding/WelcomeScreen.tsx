@@ -34,54 +34,72 @@ export const WelcomeScreen = ({ navigation }: any) => {
 
     const handleLogin = async () => {
         try {
+            // Import debug function
+            const { getTelegramDebugInfo, isTelegramWebApp } = require('../../utils/telegram');
+            
             // Wait a bit for Telegram WebApp to fully initialize
             const webApp = getTelegramWebApp();
             
-            // Debug logging
-            console.log('🔍 Telegram WebApp check:', {
-                exists: !!webApp,
-                initData: webApp?.initData ? 'present' : 'missing',
-                initDataLength: webApp?.initData?.length || 0,
-                platform: webApp?.platform,
-                version: webApp?.version,
-            });
+            // Get comprehensive debug info
+            const debugInfo = getTelegramDebugInfo();
+            console.log('🔍 Telegram WebApp Debug Info:', debugInfo);
             
-            // Try to get initData with retry
+            // Check if we're actually in Telegram
+            const inTelegram = isTelegramWebApp();
+            console.log('📍 In Telegram WebApp:', inTelegram);
+            
+            if (!inTelegram) {
+                const errorMsg = `❌ App is not opened from Telegram!\n\n` +
+                    `Current: Opened in ${debugInfo.userAgent.includes('Safari') ? 'Safari browser' : 'regular browser'}\n\n` +
+                    `To fix:\n` +
+                    `1. Open Telegram app\n` +
+                    `2. Find your bot\n` +
+                    `3. Click menu button (☰)\n` +
+                    `4. Select Mini App from menu\n\n` +
+                    `Do NOT open the URL directly in a browser!`;
+                
+                console.error(errorMsg);
+                alert(errorMsg);
+                return;
+            }
+            
+            // Try to get initData with multiple retries
             let initData = getTelegramInitData();
+            let retries = 3;
             
-            // If not available, wait a bit and try again (Telegram might still be loading)
-            if (!initData && webApp) {
-                console.log('⏳ Waiting for Telegram initData...');
-                await new Promise(resolve => setTimeout(resolve, 500));
+            while (!initData && retries > 0 && webApp) {
+                console.log(`⏳ Waiting for Telegram initData... (${retries} retries left)`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 initData = getTelegramInitData();
+                retries--;
+                
+                // Update debug info
+                const updatedDebug = getTelegramDebugInfo();
+                console.log('🔄 Retry debug info:', updatedDebug);
             }
             
             if (!initData) {
-                // Check if we're actually in Telegram
-                const isInTelegram = webApp !== null || 
-                    (typeof window !== 'undefined' && 
-                     (window.location.search.includes('tgWebApp') || 
-                      window.location.hash.includes('tgWebApp') ||
-                      navigator.userAgent.includes('Telegram')));
+                // We're in Telegram but initData is still missing
+                const errorMsg = `❌ Telegram authentication data is missing!\n\n` +
+                    `Debug Info:\n` +
+                    `- WebApp exists: ${debugInfo.webAppExists}\n` +
+                    `- Platform: ${debugInfo.platform}\n` +
+                    `- Version: ${debugInfo.version}\n` +
+                    `- Has initData: ${debugInfo.hasInitData}\n` +
+                    `- User Agent: ${debugInfo.userAgent.substring(0, 50)}...\n\n` +
+                    `Possible causes:\n` +
+                    `1. Mini App URL in BotFather is incorrect\n` +
+                    `2. App opened in external browser (not Telegram's in-app browser)\n` +
+                    `3. Telegram version too old\n` +
+                    `4. Bot not properly configured\n\n` +
+                    `Solutions:\n` +
+                    `1. Check BotFather: /myapps → Verify Web App URL is: https://lomi.social\n` +
+                    `2. Make sure you open from Telegram bot menu (not browser)\n` +
+                    `3. Update Telegram app\n` +
+                    `4. Try closing and reopening the Mini App`;
                 
-                if (!isInTelegram) {
-                    const errorMsg = 'Please open this app from Telegram. Go to your bot and click the menu button, then select the Mini App.';
-                    console.error('❌', errorMsg);
-                    alert(errorMsg);
-                    return;
-                }
-                
-                // We're in Telegram but initData is missing
-                // This can happen if the app is opened in a browser or if Telegram hasn't provided initData yet
-                const errorMsg = 'Telegram authentication data is missing. This might happen if:\n\n1. The app was opened in a browser instead of Telegram\n2. The Mini App URL is incorrect in BotFather\n3. Telegram needs to be updated\n\nPlease try:\n- Closing and reopening from Telegram\n- Checking BotFather Mini App settings\n- Updating Telegram app';
                 console.error('❌', errorMsg);
-                console.error('Debug info:', {
-                    webAppExists: !!webApp,
-                    userAgent: navigator.userAgent,
-                    url: window.location.href,
-                    search: window.location.search,
-                    hash: window.location.hash,
-                });
+                console.error('Full debug info:', JSON.stringify(debugInfo, null, 2));
                 alert(errorMsg);
                 return;
             }
