@@ -86,7 +86,7 @@ export const WelcomeScreen = ({ navigation }: any) => {
             if (!isActuallyInTelegram) {
                 console.log('🌐 App opened in web browser - will show Telegram Login Widget');
                 // Don't initialize Telegram WebApp if not in Telegram
-                return;
+                // But continue to load widget script below
             }
             
             // Only initialize if we're actually in Telegram
