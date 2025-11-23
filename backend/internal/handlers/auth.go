@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -25,9 +26,20 @@ func NewAuthHandler(cfg *config.Config) *AuthHandler {
 }
 
 func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
+	// Log incoming request for debugging
+	log.Printf("Login request received. Method: %s, Path: %s, IP: %s", c.Method(), c.Path(), c.IP())
+
 	// Get initData from Authorization header (Telegram Mini Apps SDK approach)
 	// Format: "tma <initData>" as per official documentation
 	authHeader := c.Get("Authorization")
+
+	// Log auth header presence (don't log full content for security, just length)
+	if authHeader != "" {
+		log.Printf("Authorization header present. Length: %d", len(authHeader))
+	} else {
+		log.Println("Authorization header missing, trying body...")
+	}
+
 	if authHeader == "" {
 		// Fallback: try to get from request body (for backward compatibility)
 		var req struct {
@@ -35,9 +47,11 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 		}
 		if err := c.BodyParser(&req); err == nil && req.InitData != "" {
 			authHeader = "tma " + req.InitData
+			log.Println("Found initData in request body")
 		} else {
+			log.Println("No initData found in header or body")
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Missing Authorization header",
+				"error":   "Missing Authorization header",
 				"message": "Expected format: Authorization: tma <initData>",
 			})
 		}
@@ -48,7 +62,7 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 	authParts := strings.SplitN(authHeader, " ", 2)
 	if len(authParts) != 2 {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Invalid Authorization header format",
+			"error":   "Invalid Authorization header format",
 			"message": "Expected format: Authorization: tma <initData>",
 		})
 	}
@@ -59,7 +73,7 @@ func (h *AuthHandler) TelegramLogin(c *fiber.Ctx) error {
 	// Verify auth type is "tma" (Telegram Mini App)
 	if authType != "tma" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Unsupported authorization type",
+			"error":   "Unsupported authorization type",
 			"message": fmt.Sprintf("Expected 'tma', got '%s'", authType),
 		})
 	}

@@ -20,6 +20,12 @@ func SetupRoutes(app *fiber.App) {
 	// Public routes
 	authHandler := handlers.NewAuthHandler(config.Cfg)
 	api.Post("/auth/telegram", authHandler.TelegramLogin)
+	api.Get("/auth/telegram", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusMethodNotAllowed).JSON(fiber.Map{
+			"error":   "Method not allowed",
+			"message": "Please use POST method for login",
+		})
+	})
 	api.Post("/auth/refresh", handlers.RefreshToken) // TODO: Implement
 
 	// Protected routes (require authentication)
