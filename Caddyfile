@@ -66,9 +66,9 @@
 # WARNING: This can hang if DNS isn't ready or Let's Encrypt is rate-limited
 # If reload hangs, comment out this block temporarily
 lomi.social, local.lomi {
-    # Use local certificates to avoid Let's Encrypt delays
-    # Remove this line once DNS is stable
-    local_certs
+    # Use self-signed certificates to avoid Let's Encrypt delays
+    # Remove this once DNS is stable and you want real SSL
+    tls internal
     
     # Handle preflight OPTIONS requests FIRST
     @options {

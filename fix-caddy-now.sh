@@ -74,9 +74,9 @@ sudo tee /etc/caddy/Caddyfile > /dev/null <<'EOF'
     }
 }
 
-# HTTPS domain (with local_certs to avoid Let's Encrypt delays)
+# HTTPS domain (with self-signed certs to avoid Let's Encrypt delays)
 lomi.social {
-    local_certs
+    tls internal
     
     # Handle OPTIONS preflight
     @options {
