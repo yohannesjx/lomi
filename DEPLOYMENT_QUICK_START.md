@@ -42,14 +42,14 @@ chmod +x deploy.sh
 Create `.env.production` with:
 
 ```bash
-DB_PASSWORD=secure_password
-REDIS_PASSWORD=secure_password
-JWT_SECRET=random_32_char_string_minimum
-TELEGRAM_BOT_TOKEN=your_bot_token
-S3_ENDPOINT=https://your_account.r2.cloudflarestorage.com
-S3_ACCESS_KEY=a53cdfc7c678dac2a028159bcd178da2
-S3_SECRET_KEY=https://a53cdfc7c678dac2a028159bcd178da2.r2.cloudflarestorage.com/
-```
+DB_PASSWORD=d5YhNXB5zXhT7bkbbQ7
+REDIS_PASSWORD=r5YhNXB5zXhT7bkbbQ7
+JWT_SECRET=9f3c8b27d4a1e6f2c9b0a54e83d712af
+TELEGRAM_BOT_TOKEN=8453633918:AAE6UxkHrplAxyKXXBLt56bQufhZpH-rVEM
+S3_ENDPOINT=https://a53cdfc7c678dac2a028159bcd178da2.r2.cloudflarestorage.com
+S3_ACCESS_KEY=d46ab6ad318b1127d061533769bce800
+S3_SECRET_KEY=2f1a730b2b691e8fbc5a33a8595132846cb335c19c523b90a2de173705285c20
+
 
 ## GitHub Deployment
 
@@ -62,8 +62,8 @@ git pull origin main
 
 ### Option 2: GitHub Actions (Automatic)
 1. Add secrets in GitHub: Settings → Secrets
-   - `SERVER_HOST`: Your server IP
-   - `SERVER_USER`: SSH user
+   - `SERVER_HOST`: 72.62.37.181
+   - `SERVER_USER`: root
    - `SERVER_SSH_KEY`: Private SSH key
 2. Push to `main` branch → Auto-deploys!
 

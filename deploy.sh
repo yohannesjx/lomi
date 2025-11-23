@@ -23,6 +23,14 @@ git pull origin main || git pull origin master
 echo "🛑 Stopping old containers..."
 docker-compose -f docker-compose.prod.yml down
 
+# Kill any process using port 8080
+echo "🔍 Checking port 8080..."
+if sudo lsof -ti:8080 > /dev/null 2>&1; then
+    echo "⚠️  Port 8080 is in use, freeing it..."
+    sudo kill -9 $(sudo lsof -ti:8080) 2>/dev/null || true
+    sleep 2
+fi
+
 echo "🔨 Building backend..."
 docker-compose -f docker-compose.prod.yml build backend
 
