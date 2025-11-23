@@ -53,14 +53,15 @@ redis_client = redis.Redis(
     decode_responses=False  # Keep binary for JSON
 )
 
-# Initialize NSFW model (FalAI/nsfw_image_detection - proper image classification model)
+# Initialize NSFW model (Falconsai/nsfw_image_detection - proven working model)
 logger.info("Loading NSFW detection model...")
 try:
     from transformers import AutoImageProcessor, AutoModelForImageClassification
     
-    nsfw_processor = AutoImageProcessor.from_pretrained("FalAI/nsfw_image_detection")
+    model_name = "Falconsai/nsfw_image_detection"
+    nsfw_processor = AutoImageProcessor.from_pretrained(model_name)
     nsfw_model = AutoModelForImageClassification.from_pretrained(
-        "FalAI/nsfw_image_detection",
+        model_name,
         torch_dtype=torch.float16,
         device_map="auto"
     )
@@ -171,25 +172,25 @@ def check_nsfw(image_bytes: bytes) -> dict:
             logits = outputs.logits
             probs = torch.nn.functional.softmax(logits, dim=-1)
         
-        # Get probabilities (model outputs: [normal, nsfw] or similar)
-        # Adjust based on actual model output format
+        # Get probabilities - Falconsai model outputs: [drawings, hentai, neutral, porn, sexy]
         probs_list = probs[0].cpu().numpy().tolist()
         
-        # FalAI model typically outputs: [normal, porn, sexy, hentai] or similar
-        # Map to our format (adjust indices based on actual model)
-        if len(probs_list) >= 4:
-            # Assuming format: [normal, porn, sexy, hentai]
-            porn_score = float(probs_list[1]) if len(probs_list) > 1 else 0.0
-            sexy_score = float(probs_list[2]) if len(probs_list) > 2 else 0.0
-            hentai_score = float(probs_list[3]) if len(probs_list) > 3 else 0.0
+        # Falconsai model class indices (check model config for exact order):
+        # Typically: 0=drawings, 1=hentai, 2=neutral, 3=porn, 4=sexy
+        if len(probs_list) >= 5:
+            # Format: [drawings, hentai, neutral, porn, sexy]
+            porn_score = float(probs_list[3]) if len(probs_list) > 3 else 0.0
+            sexy_score = float(probs_list[4]) if len(probs_list) > 4 else 0.0
+            hentai_score = float(probs_list[1]) if len(probs_list) > 1 else 0.0
         elif len(probs_list) == 2:
             # Binary classification: [normal, nsfw]
             nsfw_score = float(probs_list[1])
-            porn_score = nsfw_score * 0.5  # Distribute between categories
+            porn_score = nsfw_score * 0.5
             sexy_score = nsfw_score * 0.3
             hentai_score = nsfw_score * 0.2
         else:
-            # Fallback
+            # Fallback - log for debugging
+            logger.warning(f"Unexpected model output shape: {len(probs_list)} classes")
             porn_score = 0.0
             sexy_score = 0.0
             hentai_score = 0.0
