@@ -26,17 +26,19 @@ cd frontend
 if [ -f "package.json" ] && grep -q "expo" package.json; then
     echo "Detected Expo project..."
     
-    # Check if expo is installed
-    if ! command -v expo &> /dev/null; then
-        echo "Installing Expo CLI..."
-        npm install -g expo-cli
-    fi
-    
     # Build for web
     echo "Building Expo web..."
-    npx expo export:web || npm run build || npx expo export -p web
+    npx expo export -p web
     
-    BUILD_DIR="web-build"
+    # Expo creates 'dist' directory, not 'web-build'
+    if [ -d "dist" ]; then
+        BUILD_DIR="dist"
+    elif [ -d "web-build" ]; then
+        BUILD_DIR="web-build"
+    else
+        echo "❌ Error: Could not find build directory (dist or web-build)"
+        exit 1
+    fi
 else
     # Regular React/Next.js build
     echo "Building React app..."
