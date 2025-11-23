@@ -136,15 +136,46 @@ export const getTelegramInitData = (): string | null => {
             return webApp.initData;
         }
         
-        // In Telegram WebApp 6.0+, initData might be empty string initially
-        // Check if we can get it from the URL or other sources
+        // Check alternative properties that might contain initData
+        const webAppAny = webApp as any;
+        
+        // Some versions use different property names
+        if (webAppAny.initDataRaw && webAppAny.initDataRaw.length > 0) {
+            console.log('✅ Found initData in initDataRaw');
+            return webAppAny.initDataRaw;
+        }
+        
+        if (webAppAny._initData && webAppAny._initData.length > 0) {
+            console.log('✅ Found initData in _initData');
+            return webAppAny._initData;
+        }
+        
+        // Check if initDataUnsafe has the raw data
+        if (webAppAny.initDataUnsafe?._auth && webAppAny.initDataUnsafe._auth.length > 0) {
+            console.log('✅ Found initData in initDataUnsafe._auth');
+            return webAppAny.initDataUnsafe._auth;
+        }
+        
         console.log('⚠️ webApp.initData is empty, checking other sources...');
+        console.log('WebApp object keys:', Object.keys(webApp));
+        console.log('WebApp initDataUnsafe:', webApp.initDataUnsafe);
     }
     
-    // Try to get from window.location (Telegram passes it in URL)
-    if (typeof window !== 'undefined' && window.location) {
+    // Try to get from window object (Telegram might store it globally)
+    if (typeof window !== 'undefined') {
+        const windowAny = window as any;
+        
+        // Check if Telegram stores initData in window
+        if (windowAny.tgWebAppData) {
+            console.log('✅ Found initData in window.tgWebAppData');
+            return windowAny.tgWebAppData;
+        }
+        
+        // Check window.location (Telegram passes it in URL)
+        const location = window.location;
+        
         // Check query parameters
-        const params = new URLSearchParams(window.location.search);
+        const params = new URLSearchParams(location.search);
         const tgWebAppData = params.get('tgWebAppData');
         if (tgWebAppData) {
             console.log('✅ Found initData in URL query params');
@@ -152,7 +183,7 @@ export const getTelegramInitData = (): string | null => {
         }
         
         // Check hash
-        const hash = window.location.hash;
+        const hash = location.hash;
         if (hash.includes('tgWebAppData=')) {
             const match = hash.match(/tgWebAppData=([^&]+)/);
             if (match) {
@@ -162,22 +193,25 @@ export const getTelegramInitData = (): string | null => {
         }
         
         // Try to get from window.location.href (full URL)
-        const fullUrl = window.location.href;
+        const fullUrl = location.href;
         const urlMatch = fullUrl.match(/[?&#]tgWebAppData=([^&]+)/);
         if (urlMatch) {
             console.log('✅ Found initData in full URL');
             return decodeURIComponent(urlMatch[1]);
         }
-    }
-    
-    // Last resort: Try to get from Telegram WebApp's internal state
-    // Some versions store it differently
-    if (webApp && (webApp as any).initDataRaw) {
-        console.log('✅ Found initData in initDataRaw');
-        return (webApp as any).initDataRaw;
+        
+        // Check document.referrer (might have Telegram data)
+        if (document.referrer && document.referrer.includes('tgWebAppData')) {
+            const referrerMatch = document.referrer.match(/tgWebAppData=([^&]+)/);
+            if (referrerMatch) {
+                console.log('✅ Found initData in document.referrer');
+                return decodeURIComponent(referrerMatch[1]);
+            }
+        }
     }
     
     console.warn('❌ initData not found in any source');
+    console.warn('Available WebApp properties:', webApp ? Object.keys(webApp) : 'WebApp not found');
     return null;
 };
 

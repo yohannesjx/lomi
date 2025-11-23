@@ -63,19 +63,43 @@ export const WelcomeScreen = ({ navigation }: any) => {
                 return;
             }
             
-            // Try to get initData with multiple retries
+            // Try to get initData with multiple retries and longer wait times
             let initData = getTelegramInitData();
-            let retries = 3;
+            let retries = 5; // More retries
+            let waitTime = 500; // Start with 500ms
             
             while (!initData && retries > 0 && webApp) {
-                console.log(`⏳ Waiting for Telegram initData... (${retries} retries left)`);
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                console.log(`⏳ Waiting for Telegram initData... (${retries} retries left, waiting ${waitTime}ms)`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                
+                // Try to access initData directly from window (Telegram might inject it asynchronously)
+                if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+                    const tgWebApp = (window as any).Telegram.WebApp;
+                    console.log('🔍 Checking window.Telegram.WebApp.initData:', {
+                        exists: !!tgWebApp.initData,
+                        length: tgWebApp.initData?.length || 0,
+                        value: tgWebApp.initData?.substring(0, 50) || 'empty',
+                    });
+                }
+                
                 initData = getTelegramInitData();
                 retries--;
+                waitTime += 500; // Increase wait time with each retry
                 
                 // Update debug info
                 const updatedDebug = getTelegramDebugInfo();
                 console.log('🔄 Retry debug info:', updatedDebug);
+            }
+            
+            // Final check: Try to manually construct initData from initDataUnsafe if available
+            if (!initData && webApp?.initDataUnsafe) {
+                console.log('🔧 Attempting to construct initData from initDataUnsafe...');
+                const unsafe = webApp.initDataUnsafe;
+                
+                // Telegram WebApp 6.0+ might not provide initData string, but we can try to work with initDataUnsafe
+                // However, for authentication, we NEED the actual initData string with hash
+                console.warn('⚠️ initDataUnsafe available but initData string is missing');
+                console.warn('⚠️ Authentication requires the initData string with hash - cannot proceed without it');
             }
             
             if (!initData) {
