@@ -15,7 +15,22 @@ export const WelcomeScreen = ({ navigation }: any) => {
     useEffect(() => {
         // Initialize Telegram WebApp
         if (Platform.OS === 'web') {
-            initializeTelegramWebApp();
+            initializeTelegramWebApp({ enableFullscreen: false }); // Don't request fullscreen, Telegram handles it
+        }
+        
+        // Setup Telegram MainButton for native login
+        const webApp = getTelegramWebApp();
+        if (webApp && Platform.OS === 'web') {
+            // Use Telegram's native MainButton
+            webApp.MainButton.setText('Continue with Telegram');
+            webApp.MainButton.show();
+            webApp.MainButton.onClick(handleLogin);
+            
+            // Cleanup on unmount
+            return () => {
+                webApp.MainButton.offClick(handleLogin);
+                webApp.MainButton.hide();
+            };
         }
         
         // Check if already authenticated
@@ -216,12 +231,21 @@ export const WelcomeScreen = ({ navigation }: any) => {
                         Serious dating, culture, and fun.
                     </Text>
 
-                    <Button
-                        title="Continue with Telegram"
-                        onPress={handleLogin}
-                        style={styles.button}
-                        size="large"
-                    />
+                    {/* Show custom button only if Telegram MainButton is not available */}
+                    {Platform.OS !== 'web' || !getTelegramWebApp() ? (
+                        <Button
+                            title="Continue with Telegram"
+                            onPress={handleLogin}
+                            style={styles.button}
+                            size="large"
+                        />
+                    ) : (
+                        <View style={styles.buttonPlaceholder}>
+                            <Text style={styles.buttonPlaceholderText}>
+                                Use the button at the bottom
+                            </Text>
+                        </View>
+                    )}
 
                     <Text style={styles.terms}>
                         By continuing, you agree to our Terms & Privacy Policy.
@@ -310,5 +334,16 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: COLORS.textTertiary,
         textAlign: 'center',
+    },
+    buttonPlaceholder: {
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: SPACING.m,
+    },
+    buttonPlaceholderText: {
+        fontSize: 14,
+        color: COLORS.textSecondary,
+        fontStyle: 'italic',
     },
 });

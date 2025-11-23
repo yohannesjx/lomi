@@ -48,19 +48,9 @@ export default function App() {
                         window.Telegram.WebApp.ready();
                         window.Telegram.WebApp.expand();
                         
-                        // Request fullscreen mode for immersive experience (if supported)
-                        // Note: requestFullscreen may not be available in all versions
-                        try {
-                            if (window.Telegram.WebApp.requestFullscreen && 
-                                typeof window.Telegram.WebApp.requestFullscreen === 'function') {
-                                window.Telegram.WebApp.requestFullscreen();
-                                console.log('✅ Telegram WebApp initialized in fullscreen mode');
-                            } else {
-                                console.log('✅ Telegram WebApp initialized (fullscreen not supported in this version)');
-                            }
-                        } catch (error) {
-                            console.log('✅ Telegram WebApp initialized (fullscreen not available)');
-                        }
+                        // Don't call requestFullscreen - Telegram handles this automatically
+                        // The app will be fullscreen when opened from Telegram
+                        console.log('✅ Telegram WebApp initialized');
                     }
                 };
                 script.onerror = () => {
@@ -73,18 +63,8 @@ export default function App() {
                     window.Telegram.WebApp.ready();
                     window.Telegram.WebApp.expand();
                     
-                    // Request fullscreen mode (if supported)
-                    try {
-                        if (window.Telegram.WebApp.requestFullscreen && 
-                            typeof window.Telegram.WebApp.requestFullscreen === 'function') {
-                            window.Telegram.WebApp.requestFullscreen();
-                            console.log('✅ Telegram WebApp initialized in fullscreen mode (script already loaded)');
-                        } else {
-                            console.log('✅ Telegram WebApp initialized (script already loaded)');
-                        }
-                    } catch (error) {
-                        console.log('✅ Telegram WebApp initialized (script already loaded, fullscreen not available)');
-                    }
+                    // Don't call requestFullscreen - Telegram handles this automatically
+                    console.log('✅ Telegram WebApp initialized (script already loaded)');
                 }
             }
         }

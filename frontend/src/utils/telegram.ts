@@ -235,11 +235,9 @@ export const initializeTelegramWebApp = (options?: { enableFullscreen?: boolean 
             document.documentElement.style.setProperty('--tg-viewport-height', `${webApp.viewportHeight}px`);
         }
         
-        // Request fullscreen mode if enabled (default: true)
-        if (options?.enableFullscreen !== false && typeof webApp.requestFullscreen === 'function') {
-            webApp.requestFullscreen();
-            console.log('✅ Fullscreen mode enabled');
-        }
+        // Don't call requestFullscreen - Telegram handles fullscreen automatically
+        // when the Mini App is opened. Calling it manually causes errors in some versions.
+        // Fullscreen is already active if opened from Telegram.
     }
 };
 
@@ -361,19 +359,15 @@ export const useTelegramHaptic = () => {
  * Expands the app to cover the entire device screen, removing Telegram UI bars
  */
 export const requestFullscreen = (): boolean => {
+    // Note: requestFullscreen is not supported in Telegram WebApp 6.0+
+    // Fullscreen is handled automatically by Telegram when Mini App is opened
+    // This function is kept for compatibility but won't do anything
     const webApp = getTelegramWebApp();
-    if (webApp && webApp.requestFullscreen && typeof webApp.requestFullscreen === 'function') {
-        try {
-            webApp.requestFullscreen();
-            console.log('✅ Fullscreen mode requested');
-            return true;
-        } catch (error) {
-            // Method might not be supported in this version
-            console.warn('⚠️ Fullscreen not supported in this Telegram WebApp version:', error);
-            return false;
-        }
+    if (webApp?.isFullscreen) {
+        console.log('✅ App is already in fullscreen mode');
+        return true;
     }
-    console.warn('⚠️ Fullscreen not available (method not supported or not in Telegram WebApp)');
+    console.warn('⚠️ Fullscreen is handled automatically by Telegram - no need to call this');
     return false;
 };
 
