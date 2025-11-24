@@ -39,12 +39,13 @@ S3_BUCKET_PHOTOS = os.getenv('S3_BUCKET_PHOTOS', 'lomi-photos')
 QUEUE_NAME = 'photo_moderation_queue'
 RESULTS_CHANNEL = 'moderation_results'
 
-# Moderation thresholds (BALANCED - allow swimsuits, reject actual porn/nudity)
+# Moderation thresholds (LENIENT - only reject obvious explicit content like genitals)
+# Bikinis, swimsuits, and revealing clothing are allowed
 BLUR_THRESHOLD = 120  # Laplacian variance
-NSFW_PORN_THRESHOLD = 0.50  # Reject if porn > 50% (actual explicit content)
-NSFW_SEXY_THRESHOLD = 0.70  # Reject if sexy > 70% (allow swimsuits which are typically 40-60%)
-NSFW_HENTAI_THRESHOLD = 0.50  # Reject if hentai > 50%
-NSFW_ANY_THRESHOLD = 0.45  # Safety net - reject if ANY category > 45% (allows swimsuits)
+NSFW_PORN_THRESHOLD = 0.75  # Reject if porn > 75% (only obvious explicit genitals)
+NSFW_SEXY_THRESHOLD = 0.95  # Reject if sexy > 95% (essentially disabled - bikinis are sexy but allowed)
+NSFW_HENTAI_THRESHOLD = 0.75  # Reject if hentai > 75% (only obvious explicit content)
+NSFW_ANY_THRESHOLD = 0.80  # Safety net - reject if ANY category > 80% (only very explicit content)
 
 # Initialize Redis
 redis_client = redis.Redis(
@@ -573,30 +574,29 @@ def moderate_photo(photo_job: dict) -> dict:
                 # But log a warning so we can investigate
                 logger.warning(f"⚠️ No age estimate available - approving (may need manual review)")
         
-        # Check NSFW - BALANCED CHECKING (allows swimsuits, rejects actual porn/nudity)
+        # Check NSFW - LENIENT CHECKING (allows bikinis/swimsuits, only rejects obvious explicit genitals)
         porn_score = nsfw_result.get("porn", 0)
         sexy_score = nsfw_result.get("sexy", 0)
         hentai_score = nsfw_result.get("hentai", 0)
         
-        # Check specific thresholds - only reject if clearly explicit
+        # Only reject obvious explicit content (genitals) - bikinis and swimsuits are allowed
+        # Priority: Check porn first (most explicit), then hentai, ignore sexy (bikinis are sexy but allowed)
         if porn_score > NSFW_PORN_THRESHOLD:
+            # Only reject if porn score is very high (>75%) - obvious genitals
             status = "rejected"
             reason = "nsfw"
-            logger.info(f"❌ Rejected: NSFW PORN (score={porn_score:.3f} > threshold={NSFW_PORN_THRESHOLD})")
+            logger.info(f"❌ Rejected: NSFW PORN (score={porn_score:.3f} > threshold={NSFW_PORN_THRESHOLD}) - obvious explicit content")
         elif hentai_score > NSFW_HENTAI_THRESHOLD:
+            # Only reject if hentai score is very high (>75%) - obvious explicit content
             status = "rejected"
             reason = "nsfw"
-            logger.info(f"❌ Rejected: NSFW HENTAI (score={hentai_score:.3f} > threshold={NSFW_HENTAI_THRESHOLD})")
-        elif sexy_score > NSFW_SEXY_THRESHOLD:
-            # Only reject "sexy" if very high (allows swimsuits which are typically 40-60%)
+            logger.info(f"❌ Rejected: NSFW HENTAI (score={hentai_score:.3f} > threshold={NSFW_HENTAI_THRESHOLD}) - obvious explicit content")
+        # Note: We skip the "sexy" check entirely - bikinis are sexy but allowed
+        elif (porn_score > NSFW_ANY_THRESHOLD or hentai_score > NSFW_ANY_THRESHOLD):
+            # Safety net: only reject if porn or hentai is very high (>80%) - ignores sexy (bikinis)
             status = "rejected"
             reason = "nsfw"
-            logger.info(f"❌ Rejected: NSFW SEXY (score={sexy_score:.3f} > threshold={NSFW_SEXY_THRESHOLD})")
-        elif (porn_score > NSFW_ANY_THRESHOLD or sexy_score > NSFW_ANY_THRESHOLD or hentai_score > NSFW_ANY_THRESHOLD):
-            # Safety net: only reject if any category is very high (>45%) - allows swimsuits
-            status = "rejected"
-            reason = "nsfw"
-            logger.info(f"❌ Rejected: NSFW SAFETY NET (porn={porn_score:.3f}, sexy={sexy_score:.3f}, hentai={hentai_score:.3f} > {NSFW_ANY_THRESHOLD})")
+            logger.info(f"❌ Rejected: NSFW SAFETY NET (porn={porn_score:.3f}, hentai={hentai_score:.3f} > {NSFW_ANY_THRESHOLD}) - obvious explicit content")
         
         # Warn if NSFW scores are all zero (might indicate model not working)
         if (porn_score == 0.0 and sexy_score == 0.0 and hentai_score == 0.0):
