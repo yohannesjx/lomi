@@ -7,8 +7,6 @@ import (
 	"lomi-backend/config"
 	"lomi-backend/internal/database"
 	"lomi-backend/internal/models"
-	"lomi-backend/internal/queue"
-	"lomi-backend/internal/utils"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -70,9 +68,9 @@ func UploadComplete(c *fiber.Ctx) error {
 	// Generate batch_id for this upload session
 	batchID := uuid.New()
 
-	// Create media records and prepare job photos
-	jobPhotos := make([]queue.PhotoJob, 0, len(req.Photos))
+	// Create media records and auto-approve them (manual moderation)
 	mediaRecords := make([]models.Media, 0, len(req.Photos))
+	approvedCount := 0
 
 	for i, photo := range req.Photos {
 		// Validate media type
@@ -80,14 +78,14 @@ func UploadComplete(c *fiber.Ctx) error {
 			continue // Skip invalid types
 		}
 
-		// Create media record
+		// Create media record - auto-approve (manual moderation will be done later)
 		media := models.Media{
 			UserID:           userID,
 			MediaType:        models.MediaType(photo.MediaType),
 			URL:              photo.FileKey, // Store S3 key
 			DisplayOrder:     i,
-			IsApproved:       false,
-			ModerationStatus: "pending",
+			IsApproved:       true, // Auto-approve for now
+			ModerationStatus: "approved", // Auto-approve
 			BatchID:          batchID,
 		}
 
@@ -96,43 +94,13 @@ func UploadComplete(c *fiber.Ctx) error {
 			continue // Skip failed records
 		}
 
-		// Determine bucket based on media type
-		var bucket string
-		if photo.MediaType == "photo" {
-			bucket = config.Cfg.S3BucketPhotos
-		} else {
-			bucket = config.Cfg.S3BucketVideos
-		}
-
-		// Generate presigned download URL for worker (valid for 1 hour)
-		ctx := c.Context()
-		r2URL, err := database.GeneratePresignedDownloadURL(ctx, bucket, photo.FileKey, 1*time.Hour)
-		if err != nil {
-			log.Printf("❌ Failed to generate presigned download URL for %s: %v", photo.FileKey, err)
-			// Fallback: construct public URL (if bucket is public)
-			r2URL = fmt.Sprintf("%s/%s/%s",
-				config.Cfg.S3Endpoint,
-				bucket,
-				photo.FileKey,
-			)
-			log.Printf("⚠️ Using fallback public URL: %s", r2URL)
-		} else {
-			log.Printf("✅ Generated presigned download URL for %s (expires in 1h)", photo.FileKey)
-		}
-
-		jobPhotos = append(jobPhotos, queue.PhotoJob{
-			MediaID: media.ID.String(),
-			R2URL:   r2URL,
-			R2Key:   photo.FileKey,
-			Bucket:  bucket,
-		})
-
 		mediaRecords = append(mediaRecords, media)
+		approvedCount++
 	}
 
-	if len(jobPhotos) == 0 {
+	if len(mediaRecords) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "No valid photos to moderate",
+			"error": "No valid photos to upload",
 		})
 	}
 
@@ -142,22 +110,15 @@ func UploadComplete(c *fiber.Ctx) error {
 	pipe.Expire(ctx, rateLimitKey, 24*time.Hour)
 	pipe.Exec(ctx)
 
-	// Enqueue moderation job (one job for entire batch)
-	telegramID := utils.TelegramIDValue(dbUser.TelegramID)
-	if err := queue.EnqueuePhotoModeration(batchID, userID, telegramID, jobPhotos); err != nil {
-		log.Printf("❌ Failed to enqueue moderation job: %v", err)
-		// Don't fail the request - photos are saved, moderation will retry
-	}
+	log.Printf("✅ Upload complete: batch_id=%s, user_id=%s, photos=%d (auto-approved)",
+		batchID, userID, approvedCount)
 
-	log.Printf("✅ Upload complete: batch_id=%s, user_id=%s, photos=%d",
-		batchID, userID, len(jobPhotos))
-
-	// Return immediate response (user doesn't wait)
+	// Return immediate response
 	return c.JSON(fiber.Map{
 		"batch_id":     batchID.String(),
-		"message":      "We'll check your photos now",
-		"photos_count": len(jobPhotos),
-		"status":       "pending",
+		"message":      "Photos uploaded successfully",
+		"photos_count": approvedCount,
+		"status":       "approved",
 	})
 }
 

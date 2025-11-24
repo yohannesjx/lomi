@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, Platform, StatusBar, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
@@ -32,6 +32,9 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
     const [hasCalledUploadComplete, setHasCalledUploadComplete] = useState(false); // Prevent duplicate calls
     const uploadInProgressRef = useRef<Set<number>>(new Set()); // Ref for synchronous checking
     const { updateStep } = useOnboardingStore();
+    const [showConfetti, setShowConfetti] = useState(false);
+    const confettiAnim = useRef(new Animated.Value(0)).current;
+    const confettiOpacity = useRef(new Animated.Value(0)).current;
 
     const compressImage = async (uri: string): Promise<string> => {
         try {
@@ -468,48 +471,87 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 uploadCompleteResult = await UserService.uploadComplete(photosBatch);
                 console.log('✅ Upload-complete response:', uploadCompleteResult);
                 
-                // Don't update step yet - wait until photos are approved in PhotoStatus screen
-                // Navigate to PhotoStatus screen to show moderation status
-                if (navigation && navigation.navigate) {
-                    console.log('🧭 Navigating to PhotoStatus screen...');
-                    const batchId = uploadCompleteResult?.batch_id || uploadCompleteResult?.data?.batch_id;
-                    navigation.navigate('PhotoStatus', {
-                        batchId: batchId,
-                        source: 'onboarding',
-                    });
-                } else {
-                    console.error('❌ Navigation not available, trying fallback...');
-                    navigateToStatusScreen(uploadCompleteResult);
+                // Update onboarding step to 5 (photos done)
+                try {
+                    await updateStep(5);
+                    console.log('✅ Onboarding step updated to 5');
+                } catch (stepError: any) {
+                    console.warn('⚠️ Failed to update onboarding step, but continuing:', stepError);
                 }
+                
+                // Show confetti animation
+                setShowConfetti(true);
+                Animated.parallel([
+                    Animated.spring(confettiAnim, {
+                        toValue: 1,
+                        useNativeDriver: true,
+                        tension: 50,
+                        friction: 7,
+                    }),
+                    Animated.sequence([
+                        Animated.timing(confettiOpacity, {
+                            toValue: 1,
+                            duration: 300,
+                            useNativeDriver: true,
+                        }),
+                        Animated.delay(2700), // Show for 3 seconds total
+                        Animated.timing(confettiOpacity, {
+                            toValue: 0,
+                            duration: 300,
+                            useNativeDriver: true,
+                        }),
+                    ]),
+                ]).start();
+                
+                // Navigate to Video screen after 3 seconds
+                setTimeout(() => {
+                    if (navigation && navigation.navigate) {
+                        console.log('🧭 Navigating to Video screen...');
+                        navigation.navigate('Video');
+                    }
+                }, 3000);
             } catch (error: any) {
                 // Handle 429 rate limit error - photos are already uploaded, so allow continuation
                 if (error?.response?.status === 429) {
                     console.warn('⚠️ Rate limit exceeded, but photos are uploaded. Continuing...');
                     const errorMessage = error?.response?.data?.message || 'Maximum 30 photos per 24 hours.';
                     
-                    // Navigate to PhotoStatus screen anyway (photos are already uploaded to R2)
-                    if (navigation && navigation.navigate) {
-                        console.log('🧭 Navigating to PhotoStatus screen (rate limited but continuing)...');
-                        navigation.navigate('PhotoStatus', {
-                            batchId: null, // No batch ID since upload-complete failed
-                            source: 'onboarding',
-                        });
-                        // Show non-blocking message
-                        setTimeout(() => {
-                            Alert.alert(
-                                'Photo Limit Reached',
-                                errorMessage + '\n\nYour photos are uploaded and will be reviewed. You can check their status here.',
-                                [{ text: 'OK' }]
-                            );
-                        }, 500);
-                    } else {
-                        console.error('❌ Navigation not available');
-                        Alert.alert(
-                            'Photo Limit Reached',
-                            errorMessage + '\n\nYour photos are uploaded. Please continue manually.',
-                            [{ text: 'OK' }]
-                        );
+                    // Update step and navigate anyway (photos are already uploaded to R2)
+                    try {
+                        await updateStep(5);
+                    } catch (stepError: any) {
+                        console.warn('⚠️ Failed to update onboarding step:', stepError);
                     }
+                    
+                    // Show confetti and navigate
+                    setShowConfetti(true);
+                    Animated.parallel([
+                        Animated.spring(confettiAnim, {
+                            toValue: 1,
+                            useNativeDriver: true,
+                            tension: 50,
+                            friction: 7,
+                        }),
+                        Animated.sequence([
+                            Animated.timing(confettiOpacity, {
+                                toValue: 1,
+                                duration: 300,
+                                useNativeDriver: true,
+                            }),
+                            Animated.delay(2700),
+                            Animated.timing(confettiOpacity, {
+                                toValue: 0,
+                                duration: 300,
+                                useNativeDriver: true,
+                            }),
+                        ]),
+                    ]).start();
+                    
+                    setTimeout(() => {
+                        if (navigation && navigation.navigate) {
+                            navigation.navigate('Video');
+                        }
+                    }, 3000);
                     setIsSubmitting(false);
                     return;
                 }
@@ -527,66 +569,6 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
         }
     };
 
-    const navigateToStatusScreen = (uploadCompleteResult: any) => {
-        // Extract batch_id from response (axios wraps in .data)
-        const batchId = uploadCompleteResult?.batch_id || uploadCompleteResult?.data?.batch_id;
-        
-        if (!batchId) {
-            console.warn('⚠️ No batch_id in response, but continuing...');
-        }
-        
-        // Navigate to status screen - use navigation from props or get it from navigation context
-        const navParams = {
-            batchId: batchId,
-            source: 'onboarding',
-        };
-        
-        console.log('🧭 Navigating to PhotoStatus with params:', navParams);
-        
-        // Use a small delay to ensure state updates are complete
-        setTimeout(() => {
-            try {
-                // Try to get navigation from parent navigator if available
-                const nav = navigation || (navigation as any)?.parent || (navigation as any)?.navigation;
-                
-                if (nav?.navigate) {
-                    console.log('✅ Using navigation.navigate...');
-                    nav.navigate('PhotoStatus', navParams);
-                } else if (nav?.replace) {
-                    console.log('✅ Using navigation.replace...');
-                    nav.replace('PhotoStatus', navParams);
-                } else if (nav?.push) {
-                    console.log('✅ Using navigation.push...');
-                    nav.push('PhotoStatus', navParams);
-                } else {
-                    console.error('❌ No navigation method available');
-                    // Fallback: show alert and let user manually navigate
-                    Alert.alert(
-                        'Photos Uploaded',
-                        'Your photos are being reviewed. You can check their status in your profile.',
-                        [
-                            {
-                                text: 'OK',
-                                onPress: () => {
-                                    // Try to navigate to profile or back
-                                    if (nav?.goBack) {
-                                        nav.goBack();
-                                    }
-                                }
-                            }
-                        ]
-                    );
-                }
-            } catch (navError) {
-                console.error('❌ Navigation error:', navError);
-                Alert.alert(
-                    'Photos Uploaded',
-                    'Your photos are being reviewed. Please check your profile to see their status.',
-                    [{ text: 'OK' }]
-                );
-            }
-        }, 100);
-    };
 
     const PhotoBox = ({ index, photo }: { index: number, photo: PhotoData }) => (
         <TouchableOpacity
@@ -646,6 +628,43 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 </View>
             </ScrollView>
             </SafeAreaView>
+            
+            {/* Confetti overlay */}
+            {showConfetti && (
+                <Animated.View 
+                    style={[
+                        styles.confettiOverlay,
+                        {
+                            opacity: confettiOpacity,
+                        }
+                    ]}
+                    pointerEvents="none"
+                >
+                    <Animated.View
+                        style={[
+                            styles.confettiContainer,
+                            {
+                                transform: [
+                                    {
+                                        scale: confettiAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0.5, 1],
+                                        }),
+                                    },
+                                ],
+                            },
+                        ]}
+                    >
+                        <Text style={styles.confetti}>🎉</Text>
+                        <Text style={[styles.confetti, styles.confetti1]}>✨</Text>
+                        <Text style={[styles.confetti, styles.confetti2]}>💚</Text>
+                        <Text style={[styles.confetti, styles.confetti3]}>🎊</Text>
+                        <Text style={[styles.confetti, styles.confetti4]}>⭐</Text>
+                        <Text style={[styles.confetti, styles.confetti5]}>💫</Text>
+                        <Text style={[styles.confetti, styles.confetti6]}>🌟</Text>
+                    </Animated.View>
+                </Animated.View>
+            )}
         </View>
     );
 };
@@ -744,5 +763,50 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
         marginTop: SPACING.s,
         fontSize: 12,
+    },
+    confettiOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    confettiContainer: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    confetti: {
+        fontSize: 60,
+        position: 'absolute',
+    },
+    confetti1: {
+        top: '15%',
+        left: '10%',
+    },
+    confetti2: {
+        top: '25%',
+        right: '15%',
+    },
+    confetti3: {
+        top: '50%',
+        left: '20%',
+    },
+    confetti4: {
+        top: '60%',
+        right: '10%',
+    },
+    confetti5: {
+        top: '70%',
+        left: '15%',
+    },
+    confetti6: {
+        top: '35%',
+        right: '25%',
     },
 });

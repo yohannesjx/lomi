@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useOnboardingStore } from '../store/onboardingStore';
 import { useAuthStore } from '../store/authStore';
-import { UserService } from '../api/services';
 import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { COLORS } from '../theme/colors';
 
@@ -28,7 +27,6 @@ import { ReligionScreen } from '../screens/onboarding/ReligionScreen';
 import { VideoScreen } from '../screens/onboarding/VideoScreen';
 import { BioScreen } from '../screens/onboarding/BioScreen';
 import { OnboardingCompleteScreen } from '../screens/onboarding/OnboardingCompleteScreen';
-import { PhotoModerationStatusScreen } from '../screens/moderation/PhotoModerationStatusScreen';
 
 const Stack = createStackNavigator();
 
@@ -65,7 +63,6 @@ export const OnboardingNavigator: React.FC<{ navigation: any }> = ({ navigation 
     const [initialRoute, setInitialRoute] = useState<string | null>(null);
     const [hasShownWelcomeBack, setHasShownWelcomeBack] = useState(false);
     const [hasFetchedStatus, setHasFetchedStatus] = useState(false);
-    const [hasCheckedModeration, setHasCheckedModeration] = useState(false);
 
     useEffect(() => {
         // Fetch onboarding status when component mounts
@@ -86,36 +83,8 @@ export const OnboardingNavigator: React.FC<{ navigation: any }> = ({ navigation 
         
         // Only set route if we've either fetched status or have user data
         if ((!isLoading && hasFetchedStatus) || (user && user.onboarding_step !== undefined)) {
-            // If step is 4 (PhotoUpload), check if there are pending photos
-            // If so, show PhotoStatus instead so user can see moderation status
-            if (currentStep === 4 && isAuthenticated && !hasCheckedModeration) {
-                setHasCheckedModeration(true);
-                UserService.getModerationStatus()
-                    .then((status) => {
-                        const pending = status.summary?.pending ?? 0;
-                        const totalPhotos = status.summary?.total_photos ?? 0;
-                        const approved = status.summary?.approved ?? 0;
-                        
-                        // If user has uploaded photos (pending or approved), show PhotoStatus
-                        // This handles the case where user uploaded photos and refreshed
-                        if (totalPhotos > 0 || pending > 0 || approved > 0) {
-                            console.log('📸 User has photos (pending or approved), showing PhotoStatus screen');
-                            setInitialRoute('PhotoStatus');
-                        } else {
-                            // No photos uploaded yet, show PhotoUpload screen
-                            console.log('📸 No photos uploaded yet, showing PhotoUpload screen');
-                            setInitialRoute(STEP_TO_SCREEN[currentStep] || 'ProfileSetup');
-                        }
-                    })
-                    .catch((error) => {
-                        console.warn('⚠️ Failed to check moderation status, defaulting to PhotoUpload:', error);
-                        // On error, default to PhotoUpload screen
-                        setInitialRoute(STEP_TO_SCREEN[currentStep] || 'ProfileSetup');
-                    });
-            } else {
-                const targetScreen = STEP_TO_SCREEN[currentStep] || 'ProfileSetup';
-                setInitialRoute(targetScreen);
-            }
+            const targetScreen = STEP_TO_SCREEN[currentStep] || 'ProfileSetup';
+            setInitialRoute(targetScreen);
 
             // Show welcome back toast if resuming (step > 0)
             if (currentStep > 0 && !currentCompleted && !hasShownWelcomeBack) {
@@ -129,7 +98,7 @@ export const OnboardingNavigator: React.FC<{ navigation: any }> = ({ navigation 
                 }
             }
         }
-    }, [onboardingStep, onboardingCompleted, isLoading, hasShownWelcomeBack, user, hasFetchedStatus, isAuthenticated, hasCheckedModeration]);
+    }, [onboardingStep, onboardingCompleted, isLoading, hasShownWelcomeBack, user, hasFetchedStatus]);
 
     // If onboarding is completed, navigate to Main
     useEffect(() => {
@@ -179,7 +148,6 @@ export const OnboardingNavigator: React.FC<{ navigation: any }> = ({ navigation 
                 <Stack.Screen name="GenderPreference" component={GenderPreferenceScreen} />
                 <Stack.Screen name="Religion" component={ReligionScreen} />
                 <Stack.Screen name="PhotoUpload" component={PhotoUploadScreen} />
-                <Stack.Screen name="PhotoStatus" component={PhotoModerationStatusScreen} />
                 <Stack.Screen name="Video" component={VideoScreen} />
                 <Stack.Screen name="Bio" component={BioScreen} />
                 <Stack.Screen name="OnboardingComplete" component={OnboardingCompleteScreen} />

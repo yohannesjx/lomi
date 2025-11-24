@@ -129,11 +129,12 @@ export const ProfileScreen = ({ navigation }: any) => {
                         label="Edit Profile"
                         onPress={() => navigation.navigate('ProfileSetup')}
                     />
-                    <MenuItem
+                    {/* Photo moderation removed - manual moderation only */}
+                    {/* <MenuItem
                         icon="📸"
                         label="My Photos"
                         onPress={() => navigation.navigate('PhotoModerationStatus', { source: 'profile' })}
-                    />
+                    /> */}
                     <MenuItem
                         icon="💎"
                         label="Buy Coins"

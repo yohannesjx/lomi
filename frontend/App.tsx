@@ -20,7 +20,6 @@ import { LeaderboardScreen } from './src/screens/payout/LeaderboardScreen';
 import { AddVibeScreen } from './src/screens/explore/AddVibeScreen';
 import { ExploreDetailScreen } from './src/screens/explore/ExploreDetailScreen';
 import { LandingPage } from './src/screens/LandingPage';
-import { PhotoModerationStatusScreen } from './src/screens/moderation/PhotoModerationStatusScreen';
 
 const Stack = createStackNavigator();
 
@@ -165,7 +164,6 @@ export default function App() {
                             <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
                             <Stack.Screen name="AddVibe" component={AddVibeScreen} />
                             <Stack.Screen name="ExploreDetail" component={ExploreDetailScreen} />
-                            <Stack.Screen name="PhotoModerationStatus" component={PhotoModerationStatusScreen} />
                         </Stack.Navigator>
                     </NavigationContainer>
                 </AuthGuard>
