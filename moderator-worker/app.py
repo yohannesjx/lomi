@@ -455,7 +455,9 @@ def moderate_photo(photo_job: dict) -> dict:
         elif "error" in face_result:
             # CompreFace failed - use OpenCV as fallback for basic face detection
             logger.warning(f"⚠️ CompreFace error: {face_result.get('error')} - trying OpenCV fallback")
+            logger.info(f"🔄 Running OpenCV face detection fallback...")
             opencv_face_result = check_face_opencv(image_bytes)
+            logger.info(f"🔄 OpenCV result: has_face={opencv_face_result.get('has_face')}, face_count={opencv_face_result.get('face_count')}, age={opencv_face_result.get('estimated_age')}")
             if opencv_face_result["has_face"]:
                 logger.info(f"✅ OpenCV fallback detected {opencv_face_result['face_count']} valid face(s)")
                 # Use OpenCV result (includes age estimation if available)
