@@ -87,7 +87,8 @@ export const BioScreen = ({ navigation }: any) => {
                     />
                 </View>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+            </SafeAreaView>
+        </View>
     );
 };
 
