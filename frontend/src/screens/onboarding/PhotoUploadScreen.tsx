@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, Platform, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,6 +29,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [uploadInProgress, setUploadInProgress] = useState<Set<number>>(new Set()); // Track which indices are uploading
     const [hasCalledUploadComplete, setHasCalledUploadComplete] = useState(false); // Prevent duplicate calls
+    const uploadInProgressRef = useRef<Set<number>>(new Set()); // Ref for synchronous checking
 
     const compressImage = async (uri: string): Promise<string> => {
         try {
@@ -138,45 +139,89 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
         });
 
         if (!result.canceled && result.assets[0]) {
-            // Prevent uploading if this index is already uploading
-            if (uploadInProgress.has(index)) {
+            // Prevent uploading if this index is already uploading (use ref for synchronous check)
+            if (uploadInProgressRef.current.has(index)) {
                 console.warn(`⚠️ Upload already in progress for index ${index}`);
                 return;
             }
 
+            // Mark as in progress using ref (synchronous)
+            uploadInProgressRef.current.add(index);
+            setUploadInProgress(prev => new Set(prev).add(index));
+
             const originalUri = result.assets[0].uri;
-            const newPhotos = [...photos];
-            newPhotos[index] = { uri: originalUri, fileKey: null, isUploading: true };
-            setPhotos(newPhotos);
+            
+            // Use functional update to avoid race conditions
+            setPhotos(prevPhotos => {
+                const newPhotos = [...prevPhotos];
+                newPhotos[index] = { uri: originalUri, fileKey: null, isUploading: true };
+                return newPhotos;
+            });
             
             // Mark this index as uploading
             setUploadInProgress(prev => new Set(prev).add(index));
 
             // Compress image before uploading
+            let compressedUri: string;
             try {
-                const compressedUri = await compressImage(originalUri);
-                // Update with compressed URI for display
-                newPhotos[index] = { uri: compressedUri, fileKey: null, isUploading: true };
-                setPhotos(newPhotos);
-                
-                // Upload compressed image
-                await uploadPhoto(compressedUri, index);
+                compressedUri = await compressImage(originalUri);
+                // Update with compressed URI for display using functional update
+                setPhotos(prevPhotos => {
+                    const newPhotos = [...prevPhotos];
+                    newPhotos[index] = { uri: compressedUri, fileKey: null, isUploading: true };
+                    return newPhotos;
+                });
             } catch (error: any) {
-                console.error('Image processing error:', error);
-                Alert.alert('Error', 'Failed to process image. Please try again.');
-                newPhotos[index] = { uri: null, fileKey: null, isUploading: false };
-                setPhotos(newPhotos);
-                // Remove from upload in progress
+                console.error('Image compression error:', error);
+                Alert.alert('Error', 'Failed to compress image. Please try again.');
+                // Use functional update to reset state
+                setPhotos(prevPhotos => {
+                    const newPhotos = [...prevPhotos];
+                    newPhotos[index] = { uri: null, fileKey: null, isUploading: false };
+                    return newPhotos;
+                });
+                uploadInProgressRef.current.delete(index);
                 setUploadInProgress(prev => {
                     const next = new Set(prev);
                     next.delete(index);
                     return next;
                 });
+                return;
             }
+            
+            // Upload compressed image (don't await here to allow concurrent uploads)
+            uploadPhoto(compressedUri, index).catch((error: any) => {
+                // Error is already handled in uploadPhoto, but ensure state is reset
+                console.error('Upload promise rejected:', error);
+            });
         }
     };
 
     const uploadPhoto = async (localUri: string, index: number) => {
+        // Add timeout to prevent infinite uploading states (60 seconds)
+        const timeoutId = setTimeout(() => {
+            console.error(`⏱️ Upload timeout for index ${index} after 60 seconds`);
+            setPhotos(prevPhotos => {
+                const newPhotos = [...prevPhotos];
+                // Only reset if still uploading (not already completed)
+                if (newPhotos[index]?.isUploading) {
+                    newPhotos[index] = { 
+                        uri: newPhotos[index].uri, 
+                        fileKey: null, 
+                        isUploading: false 
+                    };
+                }
+                return newPhotos;
+            });
+            uploadInProgressRef.current.delete(index);
+            setUploadInProgress(prev => {
+                const next = new Set(prev);
+                next.delete(index);
+                return next;
+            });
+            Alert.alert('Upload Timeout', 'The upload took too long. Please try again.');
+        }, 60000); // 60 second timeout
+
         try {
             // In dev mode, skip actual upload if not authenticated
             if (__DEV__) {
@@ -184,13 +229,22 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 if (!isAuthenticated) {
                     console.warn('⚠️ Dev mode: Skipping upload (not authenticated)');
                     console.log('ℹ️  Photo will be stored locally for UI testing');
-                    const newPhotos = [...photos];
-                    newPhotos[index] = {
-                        uri: localUri,
-                        fileKey: `dev_${Date.now()}_${index}`, // Mock file key
-                        isUploading: false,
-                    };
-                    setPhotos(newPhotos);
+                    clearTimeout(timeoutId);
+                    setPhotos(prevPhotos => {
+                        const newPhotos = [...prevPhotos];
+                        newPhotos[index] = {
+                            uri: localUri,
+                            fileKey: `dev_${Date.now()}_${index}`, // Mock file key
+                            isUploading: false,
+                        };
+                        return newPhotos;
+                    });
+                    uploadInProgressRef.current.delete(index);
+                    setUploadInProgress(prev => {
+                        const next = new Set(prev);
+                        next.delete(index);
+                        return next;
+                    });
                     return;
                 }
             }
@@ -297,6 +351,9 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 console.log('✅ Upload to R2 successful (RN)');
             }
 
+            // Clear timeout on success
+            clearTimeout(timeoutId);
+
             // 3. Update photo data with file key (success)
             console.log('✅ Upload completed successfully, setting fileKey:', file_key);
             setPhotos(prevPhotos => {
@@ -310,6 +367,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             });
             
             // Remove from upload in progress
+            uploadInProgressRef.current.delete(index);
             setUploadInProgress(prev => {
                 const next = new Set(prev);
                 next.delete(index);
@@ -318,6 +376,8 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             
             console.log('✅ Photo state updated, ready for media record creation');
         } catch (error: any) {
+            // Clear timeout on error
+            clearTimeout(timeoutId);
             console.error('Upload error details:', {
                 error,
                 message: error?.message,
@@ -339,6 +399,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             });
             
             // Remove from upload in progress
+            uploadInProgressRef.current.delete(index);
             setUploadInProgress(prev => {
                 const next = new Set(prev);
                 next.delete(index);
