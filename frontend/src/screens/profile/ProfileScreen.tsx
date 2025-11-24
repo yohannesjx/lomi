@@ -143,12 +143,14 @@ export const ProfileScreen = ({ navigation }: any) => {
                         onPress={() => navigation.navigate('BuyCoins')}
                     />
                     <MenuItem
+                        icon="💎"
+                        label="Buy Coins (New)"
+                        onPress={() => navigation.navigate('BuyCoins')}
+                    />
+                    <MenuItem
                         icon="🎁"
                         label="Gift Shop"
-                        onPress={() => {
-                            // Navigate to gift shop if registered, or show gift shop in modal
-                            Alert.alert('Gift Shop', 'Gift shop coming soon! Use the gift icon in chat to send gifts.');
-                        }}
+                        onPress={() => navigation.navigate('GiftShop')}
                     />
                     <MenuItem
                         icon="💰"

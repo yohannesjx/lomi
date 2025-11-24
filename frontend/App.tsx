@@ -13,6 +13,7 @@ import { AuthGuard } from './src/components/AuthGuard';
 import { MainTabNavigator } from './src/navigation/MainTabNavigator';
 import { ChatDetailScreen } from './src/screens/chat/ChatDetailScreen';
 import { BuyCoinsScreen } from './src/screens/coins/BuyCoinsScreen';
+import { GiftShopScreen } from './src/screens/gifts/GiftShopScreen';
 import { CashoutScreen } from './src/screens/payout/CashoutScreen';
 import { TelebirrPayoutScreen } from './src/screens/payout/TelebirrPayoutScreen';
 import { PayoutThankYouScreen } from './src/screens/payout/PayoutThankYouScreen';
@@ -158,6 +159,7 @@ export default function App() {
                             <Stack.Screen name="Main" component={MainTabNavigator} />
                             <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
                             <Stack.Screen name="BuyCoins" component={BuyCoinsScreen} />
+                            <Stack.Screen name="GiftShop" component={GiftShopScreen} />
                             <Stack.Screen name="Cashout" component={CashoutScreen} />
                             <Stack.Screen name="TelebirrPayout" component={TelebirrPayoutScreen} />
                             <Stack.Screen name="PayoutThankYou" component={PayoutThankYouScreen} />

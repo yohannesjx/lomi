@@ -104,7 +104,7 @@ export const BuyCoinsScreen = ({ navigation, route }: any) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Text style={styles.backIcon}>←</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Buy Coins 💎</Text>
+                <Text style={styles.headerTitle}>Buy Coins 💎 (NEW)</Text>
                 <View style={styles.balanceBadge}>
                     <Text style={styles.balanceText}>💎 {coinBalance.toLocaleString()}</Text>
                 </View>
@@ -120,13 +120,14 @@ export const BuyCoinsScreen = ({ navigation, route }: any) => {
                 <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {/* Coin Packages */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Choose Package</Text>
+                    <Text style={styles.sectionTitle}>Choose Package (Luxury Packs)</Text>
+                    <Text style={styles.sectionSubtitle}>Spark → Universe: 600 LC to 100,000 LC</Text>
                     {COIN_PACKAGES.map((pkg, index) => (
                         <TouchableOpacity
-                            key={index}
+                            key={pkg.id || index}
                             style={[
                                 styles.packageCard,
-                                selectedPackage.coins === pkg.coins && styles.packageCardSelected,
+                                selectedPackage.id === pkg.id && styles.packageCardSelected,
                                 pkg.popular && styles.packageCardPopular,
                             ]}
                             onPress={() => setSelectedPackage(pkg)}
