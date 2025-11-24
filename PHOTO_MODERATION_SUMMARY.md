@@ -68,7 +68,7 @@ Go subscriber updates DB + sends grouped push notification
 1. ✅ **Test script created**: `./test-phase2-moderation.sh`
 2. ✅ **End-to-end test successful**: Upload → Queue → Workers → DB ✅
 3. ✅ **All components verified**: Queue processing, worker execution, DB updates
-4. ⏳ Push notifications - need to verify (should be sent by subscriber)
+4. ✅ **Push notifications verified**: Rejection notices fully implemented with Amharic + English messages
 
 **Test Results:**
 - ✅ 5 photos uploaded to R2 successfully
