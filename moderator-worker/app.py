@@ -192,55 +192,45 @@ def check_face_opencv(image_bytes: bytes) -> dict:
             # Additional heuristic: check face position (babies often centered, adults vary)
             # But this is less reliable, so we'll focus on size
             
-            # BALANCED age estimation focused on detecting children UNDER 10 years old
-            # Use BOTH relative size AND absolute size, but be more lenient for adults
+            # LENIENT age estimation - only reject OBVIOUS babies
+            # Use BOTH absolute size AND relative size, but require BOTH to be very small
             
-            # First check: absolute size (most reliable for babies)
-            # Typical baby face: 40-70 pixels wide
-            # Typical child (5-9 years): 70-110 pixels wide  
-            # Typical adult: 120-300+ pixels wide
-            if face_w < 70 or face_h < 70:
-                # Very small absolute size = definitely a baby/young child
-                estimated_age = 4  # Very conservative - definitely under 10
-                logger.info(f"OpenCV: Very small absolute face size ({face_w}x{face_h}px) - estimated age ~4 (BABY - UNDER 10)")
-            elif face_w < 110 or face_h < 110:
-                # Small absolute size = likely child under 10
-                estimated_age = 8  # Conservative - likely under 10
-                logger.info(f"OpenCV: Small absolute face size ({face_w}x{face_h}px) - estimated age ~8 (CHILD - UNDER 10)")
+            # Only reject if BOTH absolute size AND relative size indicate a baby
+            # This prevents false positives on adults with small faces in large images
             
-            # Second check: relative size (percentage of image)
-            # Very small faces (< 2% of image) = babies/toddlers (0-4 years) - DEFINITELY UNDER 10
-            elif face_ratio < 0.02:
-                estimated_age = 3  # Very conservative - definitely under 10
-                logger.info(f"OpenCV: Very small face detected (ratio={face_ratio:.3f}, {face_w}x{face_h}px) - estimated age ~3 (BABY - UNDER 10)")
+            is_very_small_absolute = face_w < 60 or face_h < 60  # Very strict: only < 60px
+            is_very_small_relative = face_ratio < 0.015  # Very strict: only < 1.5% of image
             
-            # Small faces (2-4% of image) = toddlers/young children (5-8 years) - UNDER 10
-            elif face_ratio < 0.04:
-                estimated_age = 7  # Conservative - likely under 10
-                logger.info(f"OpenCV: Small face detected (ratio={face_ratio:.3f}, {face_w}x{face_h}px) - estimated age ~7 (CHILD - UNDER 10)")
+            # Only reject if BOTH conditions are true (very obvious baby)
+            if is_very_small_absolute and is_very_small_relative:
+                estimated_age = 3  # Very obvious baby
+                logger.info(f"OpenCV: OBVIOUS BABY detected (size={face_w}x{face_h}px, ratio={face_ratio:.3f}) - estimated age ~3 (REJECT)")
             
-            # Medium-small faces (4-6% of image) = children (9-12 years) - BORDERLINE
-            elif face_ratio < 0.06:
-                estimated_age = 12  # Could be over 10, but borderline - APPROVE to avoid false positives
-                logger.info(f"OpenCV: Medium-small face detected (ratio={face_ratio:.3f}, {face_w}x{face_h}px) - estimated age ~12 (BORDERLINE - APPROVE)")
+            # Check absolute size only (as secondary check)
+            elif face_w < 50 or face_h < 50:
+                # Extremely small absolute size = definitely a baby
+                estimated_age = 2  # Extremely small = baby
+                logger.info(f"OpenCV: Extremely small absolute face size ({face_w}x{face_h}px) - estimated age ~2 (BABY - REJECT)")
             
-            # Medium faces (6-9% of image) = older children/teens (13-17 years) - LIKELY OVER 10
-            elif face_ratio < 0.09:
-                estimated_age = 15  # Likely over 10, but still under 18
-                logger.info(f"OpenCV: Medium face detected (ratio={face_ratio:.3f}, {face_w}x{face_h}px) - estimated age ~15 (TEEN - OVER 10)")
+            # Check relative size only (as secondary check)
+            elif face_ratio < 0.01:
+                # Extremely small relative size = definitely a baby
+                estimated_age = 2  # Extremely small = baby
+                logger.info(f"OpenCV: Extremely small relative face (ratio={face_ratio:.3f}) - estimated age ~2 (BABY - REJECT)")
             
-            # Large faces (> 9% of image) = adults (18+ years) - DEFINITELY OVER 10
+            # Everything else = approve (assume adult/teen)
             else:
-                estimated_age = 25  # Likely adult, definitely over 10
-                logger.info(f"OpenCV: Large face detected (ratio={face_ratio:.3f}, {face_w}x{face_h}px) - estimated age ~25 (ADULT - OVER 10)")
+                # Default to adult age for anything that doesn't clearly look like a baby
+                estimated_age = 20  # Assume adult to avoid false rejections
+                logger.info(f"OpenCV: Face size normal (size={face_w}x{face_h}px, ratio={face_ratio:.3f}) - estimated age ~20 (ADULT - APPROVE)")
         
         logger.info(f"OpenCV face detection: found {len(faces)} candidate(s), {face_count} valid face(s) (image: {width}x{height}, estimated_age={estimated_age})")
         
-        # If face detected but no age estimated, assume adult (approve)
+        # If face detected but no age estimated, always assume adult (approve)
         # This prevents false rejections when age estimation fails
         if face_count > 0 and estimated_age is None:
-            logger.warning(f"⚠️ Face detected but age not estimated - assuming adult (age=20) to avoid false rejection")
-            estimated_age = 20  # Assume adult if we can't estimate - better to approve than reject incorrectly
+            logger.info(f"✅ Face detected but age not estimated - assuming adult (age=20) to avoid false rejection")
+            estimated_age = 20  # Always assume adult if we can't estimate - better to approve than reject incorrectly
         
         return {
             "has_face": face_count > 0,
