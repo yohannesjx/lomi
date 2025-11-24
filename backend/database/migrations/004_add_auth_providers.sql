@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS auth_providers (
     email VARCHAR(255),
     linked_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ
 );
 
 -- Unique constraint for provider/provider_id pair
@@ -19,6 +20,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_providers_provider_id
 
 CREATE INDEX IF NOT EXISTS idx_auth_providers_user_id
     ON auth_providers (user_id);
+
+-- Add deleted_at index for soft deletes
+CREATE INDEX IF NOT EXISTS idx_auth_providers_deleted_at
+    ON auth_providers (deleted_at);
 
 -- 2. Add email column to users table if missing
 DO $$
