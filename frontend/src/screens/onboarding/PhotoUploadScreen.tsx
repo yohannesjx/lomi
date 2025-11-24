@@ -32,9 +32,6 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
     const [hasCalledUploadComplete, setHasCalledUploadComplete] = useState(false); // Prevent duplicate calls
     const uploadInProgressRef = useRef<Set<number>>(new Set()); // Ref for synchronous checking
     const { updateStep } = useOnboardingStore();
-    const [showConfetti, setShowConfetti] = useState(false);
-    const confettiAnim = useRef(new Animated.Value(0)).current;
-    const confettiOpacity = useRef(new Animated.Value(0)).current;
 
     const compressImage = async (uri: string): Promise<string> => {
         try {
@@ -479,37 +476,11 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                     console.warn('⚠️ Failed to update onboarding step, but continuing:', stepError);
                 }
                 
-                // Show confetti animation
-                setShowConfetti(true);
-                Animated.parallel([
-                    Animated.spring(confettiAnim, {
-                        toValue: 1,
-                        useNativeDriver: true,
-                        tension: 50,
-                        friction: 7,
-                    }),
-                    Animated.sequence([
-                        Animated.timing(confettiOpacity, {
-                            toValue: 1,
-                            duration: 300,
-                            useNativeDriver: true,
-                        }),
-                        Animated.delay(2700), // Show for 3 seconds total
-                        Animated.timing(confettiOpacity, {
-                            toValue: 0,
-                            duration: 300,
-                            useNativeDriver: true,
-                        }),
-                    ]),
-                ]).start();
-                
-                // Navigate to Video screen after 3 seconds
-                setTimeout(() => {
-                    if (navigation && navigation.navigate) {
-                        console.log('🧭 Navigating to Video screen...');
-                        navigation.navigate('Video');
-                    }
-                }, 3000);
+                // Navigate to Video screen
+                if (navigation && navigation.navigate) {
+                    console.log('🧭 Navigating to Video screen...');
+                    navigation.navigate('Video');
+                }
             } catch (error: any) {
                 // Handle 429 rate limit error - photos are already uploaded, so allow continuation
                 if (error?.response?.status === 429) {
@@ -523,35 +494,10 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                         console.warn('⚠️ Failed to update onboarding step:', stepError);
                     }
                     
-                    // Show confetti and navigate
-                    setShowConfetti(true);
-                    Animated.parallel([
-                        Animated.spring(confettiAnim, {
-                            toValue: 1,
-                            useNativeDriver: true,
-                            tension: 50,
-                            friction: 7,
-                        }),
-                        Animated.sequence([
-                            Animated.timing(confettiOpacity, {
-                                toValue: 1,
-                                duration: 300,
-                                useNativeDriver: true,
-                            }),
-                            Animated.delay(2700),
-                            Animated.timing(confettiOpacity, {
-                                toValue: 0,
-                                duration: 300,
-                                useNativeDriver: true,
-                            }),
-                        ]),
-                    ]).start();
-                    
-                    setTimeout(() => {
-                        if (navigation && navigation.navigate) {
-                            navigation.navigate('Video');
-                        }
-                    }, 3000);
+                    // Navigate to Video screen
+                    if (navigation && navigation.navigate) {
+                        navigation.navigate('Video');
+                    }
                     setIsSubmitting(false);
                     return;
                 }
@@ -628,43 +574,6 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 </View>
             </ScrollView>
             </SafeAreaView>
-            
-            {/* Confetti overlay */}
-            {showConfetti && (
-                <Animated.View 
-                    style={[
-                        styles.confettiOverlay,
-                        {
-                            opacity: confettiOpacity,
-                        }
-                    ]}
-                    pointerEvents="none"
-                >
-                    <Animated.View
-                        style={[
-                            styles.confettiContainer,
-                            {
-                                transform: [
-                                    {
-                                        scale: confettiAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [0.5, 1],
-                                        }),
-                                    },
-                                ],
-                            },
-                        ]}
-                    >
-                        <Text style={styles.confetti}>🎉</Text>
-                        <Text style={[styles.confetti, styles.confetti1]}>✨</Text>
-                        <Text style={[styles.confetti, styles.confetti2]}>💚</Text>
-                        <Text style={[styles.confetti, styles.confetti3]}>🎊</Text>
-                        <Text style={[styles.confetti, styles.confetti4]}>⭐</Text>
-                        <Text style={[styles.confetti, styles.confetti5]}>💫</Text>
-                        <Text style={[styles.confetti, styles.confetti6]}>🌟</Text>
-                    </Animated.View>
-                </Animated.View>
-            )}
         </View>
     );
 };
@@ -763,50 +672,5 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
         marginTop: SPACING.s,
         fontSize: 12,
-    },
-    confettiOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1000,
-    },
-    confettiContainer: {
-        position: 'absolute',
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    confetti: {
-        fontSize: 60,
-        position: 'absolute',
-    },
-    confetti1: {
-        top: '15%',
-        left: '10%',
-    },
-    confetti2: {
-        top: '25%',
-        right: '15%',
-    },
-    confetti3: {
-        top: '50%',
-        left: '20%',
-    },
-    confetti4: {
-        top: '60%',
-        right: '10%',
-    },
-    confetti5: {
-        top: '70%',
-        left: '15%',
-    },
-    confetti6: {
-        top: '35%',
-        right: '25%',
     },
 });

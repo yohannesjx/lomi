@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
@@ -7,14 +7,15 @@ import { useOnboardingStore } from '../../store/onboardingStore';
 
 export const OnboardingCompleteScreen = ({ navigation }: any) => {
     const { updateStep } = useOnboardingStore();
+    const [showConfetti, setShowConfetti] = useState(true);
     const confettiAnim = React.useRef(new Animated.Value(0)).current;
-    const scaleAnim = React.useRef(new Animated.Value(0)).current;
+    const confettiOpacity = React.useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         // Mark onboarding as completed
         updateStep(8, true);
 
-        // Animate confetti
+        // Show confetti animation for 3 seconds
         Animated.parallel([
             Animated.spring(confettiAnim, {
                 toValue: 1,
@@ -22,13 +23,23 @@ export const OnboardingCompleteScreen = ({ navigation }: any) => {
                 tension: 50,
                 friction: 7,
             }),
-            Animated.spring(scaleAnim, {
-                toValue: 1,
-                useNativeDriver: true,
-                tension: 50,
-                friction: 7,
-            }),
-        ]).start();
+            Animated.sequence([
+                Animated.timing(confettiOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.delay(2700), // Show for 3 seconds total
+                Animated.timing(confettiOpacity, {
+                    toValue: 0,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+            ]),
+        ]).start(() => {
+            // Hide confetti after animation completes
+            setShowConfetti(false);
+        });
     }, []);
 
     const handleStart = () => {
@@ -43,25 +54,6 @@ export const OnboardingCompleteScreen = ({ navigation }: any) => {
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
             <SafeAreaView style={styles.safeArea} edges={['bottom']}>
             <View style={styles.content}>
-                <Animated.View
-                    style={[
-                        styles.confettiContainer,
-                        {
-                            opacity: confettiAnim,
-                            transform: [
-                                {
-                                    scale: scaleAnim.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [0.5, 1],
-                                    }),
-                                },
-                            ],
-                        },
-                    ]}
-                >
-                    <Text style={styles.confetti}>🎉</Text>
-                </Animated.View>
-
                 <View style={styles.header}>
                     <Text style={styles.title}>You're all set! 🍋</Text>
                     <Text style={styles.subtitle}>
@@ -89,6 +81,43 @@ export const OnboardingCompleteScreen = ({ navigation }: any) => {
                 </View>
             </View>
             </SafeAreaView>
+            
+            {/* Confetti overlay */}
+            {showConfetti && (
+                <Animated.View 
+                    style={[
+                        styles.confettiOverlay,
+                        {
+                            opacity: confettiOpacity,
+                        }
+                    ]}
+                    pointerEvents="none"
+                >
+                    <Animated.View
+                        style={[
+                            styles.confettiContainer,
+                            {
+                                transform: [
+                                    {
+                                        scale: confettiAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0.5, 1],
+                                        }),
+                                    },
+                                ],
+                            },
+                        ]}
+                    >
+                        <Text style={styles.confetti}>🎉</Text>
+                        <Text style={[styles.confetti, styles.confetti1]}>✨</Text>
+                        <Text style={[styles.confetti, styles.confetti2]}>💚</Text>
+                        <Text style={[styles.confetti, styles.confetti3]}>🎊</Text>
+                        <Text style={[styles.confetti, styles.confetti4]}>⭐</Text>
+                        <Text style={[styles.confetti, styles.confetti5]}>💫</Text>
+                        <Text style={[styles.confetti, styles.confetti6]}>🌟</Text>
+                    </Animated.View>
+                </Animated.View>
+            )}
         </View>
     );
 };
@@ -98,17 +127,59 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.background,
     },
+    safeArea: {
+        flex: 1,
+    },
     content: {
         flex: 1,
         padding: SPACING.l,
         justifyContent: 'center',
         alignItems: 'center',
     },
+    confettiOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
     confettiContainer: {
-        marginBottom: SPACING.xl,
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     confetti: {
-        fontSize: 80,
+        fontSize: 60,
+        position: 'absolute',
+    },
+    confetti1: {
+        top: '15%',
+        left: '10%',
+    },
+    confetti2: {
+        top: '25%',
+        right: '15%',
+    },
+    confetti3: {
+        top: '50%',
+        left: '20%',
+    },
+    confetti4: {
+        top: '60%',
+        right: '10%',
+    },
+    confetti5: {
+        top: '70%',
+        left: '15%',
+    },
+    confetti6: {
+        top: '35%',
+        right: '25%',
     },
     header: {
         alignItems: 'center',
