@@ -89,6 +89,9 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-lomi_social_bot}
       
+      # Google OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      
       # Payment Gateways
       TELEBIRR_API_KEY: ${TELEBIRR_API_KEY:-}
       CBE_BIRR_API_KEY: ${CBE_BIRR_API_KEY:-}
