@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "start": "expo start --clear",
+    "start:no-cache": "expo start --clear --no-dev --minify",
+    "android": "expo start --android --clear",
+    "ios": "expo start --ios --clear",
+    "web": "expo start --web --clear",
     "build": "expo export -p web",
-    "build:web": "expo export -p web"
+    "build:web": "expo export -p web",
+    "clear-cache": "rm -rf .expo node_modules/.cache .metro && echo 'Cache cleared!'"
   },
   "dependencies": {
     "@react-navigation/bottom-tabs": "^6.5.11",

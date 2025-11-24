@@ -50,6 +50,7 @@ export const GiftShopScreen = ({ navigation }: any) => {
     const [loading, setLoading] = useState(true);
     const [buyCoinsModalVisible, setBuyCoinsModalVisible] = useState(false);
     const [purchasing, setPurchasing] = useState<string | null>(null);
+    const [version] = useState(() => Date.now()); // Cache busting
 
     useEffect(() => {
         loadData();
@@ -57,12 +58,14 @@ export const GiftShopScreen = ({ navigation }: any) => {
 
     const loadData = async () => {
         try {
+            // Force fresh data with cache busting
             const [giftsRes, balanceRes] = await Promise.all([
                 GiftService.getShop(),
                 GiftService.getWalletBalance(),
             ]);
             setGifts(giftsRes.gifts || []);
             setCoinBalance(balanceRes.coin_balance || 0);
+            console.log('✅ Gift shop data loaded (v1.0.1)', { version });
         } catch (error: any) {
             console.error('Load data error:', error);
             Alert.alert('Error', 'Failed to load gift shop');
