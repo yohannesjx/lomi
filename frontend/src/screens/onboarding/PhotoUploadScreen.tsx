@@ -8,7 +8,6 @@ import { BackButton } from '../../components/ui/BackButton';
 import { COLORS, SPACING, SIZES } from '../../theme/colors';
 import { UserService } from '../../api/services';
 import { useAuthStore } from '../../store/authStore';
-import { useOnboardingStore } from '../../store/onboardingStore';
 import axios from 'axios';
 
 interface PhotoData {
@@ -27,7 +26,6 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
         { uri: null, fileKey: null, isUploading: false },
     ]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { updateStep } = useOnboardingStore();
 
     const pickImage = async (index: number) => {
         // Request permissions
@@ -243,19 +241,50 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             const uploadCompleteResult = await UserService.uploadComplete(photosBatch);
             console.log('✅ Upload-complete response:', uploadCompleteResult);
 
-            // Update onboarding step
-            console.log('📤 Updating onboarding step to 5...');
-            await updateStep(5);
-            console.log('✅ Onboarding step updated');
+            // Extract batch_id from response (axios wraps in .data)
+            const batchId = uploadCompleteResult?.batch_id || uploadCompleteResult?.data?.batch_id;
+            
+            console.log('🔍 Extracted batchId:', batchId);
+            console.log('🧭 Navigation object type:', typeof navigation);
+            console.log('🧭 Navigation methods:', {
+                navigate: typeof navigation?.navigate,
+                replace: typeof navigation?.replace,
+                push: typeof navigation?.push,
+            });
+            
+            // Navigate to status screen
+            const navParams = {
+                batchId: batchId,
+                photosCount: photosBatch.length,
+                source: 'onboarding',
+            };
+            
+            console.log('🧭 Attempting navigation to PhotoStatus with params:', navParams);
+            
+            // Try navigation - use replace to ensure it happens
+            if (navigation?.replace) {
+                console.log('✅ Using navigation.replace...');
+                navigation.replace('PhotoStatus', navParams);
+            } else if (navigation?.navigate) {
+                console.log('✅ Using navigation.navigate...');
+                navigation.navigate('PhotoStatus', navParams);
+            } else if (navigation?.push) {
+                console.log('✅ Using navigation.push...');
+                navigation.push('PhotoStatus', navParams);
+            } else {
+                console.error('❌ No navigation method available. Navigation object:', navigation);
+                Alert.alert(
+                    'Photos Uploaded',
+                    'Your photos are being reviewed. Please check your profile to see their status.',
+                    [{ text: 'OK' }]
+                );
+            }
 
-            // Navigate to next screen
             // Photos still uploading will continue in background
             const stillUploading = photos.filter(p => p.uri !== null && p.fileKey === null && p.isUploading);
             if (stillUploading.length > 0) {
                 console.log(`ℹ️  ${stillUploading.length} photos still uploading in background`);
             }
-
-            navigation.navigate('Video');
         } catch (error: any) {
             console.error('Submit error:', error);
             Alert.alert(

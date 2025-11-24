@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"lomi-backend/config"
@@ -158,4 +159,113 @@ func UploadComplete(c *fiber.Ctx) error {
 		"photos_count": len(jobPhotos),
 		"status":       "pending",
 	})
+}
+
+// GetMyModerationStatus returns moderation status for the authenticated user's media
+func GetMyModerationStatus(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userIDStr := claims["user_id"].(string)
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid user ID",
+		})
+	}
+
+	var media []models.Media
+	if err := database.DB.
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Find(&media).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":   "Failed to fetch media",
+			"details": err.Error(),
+		})
+	}
+
+	ctx := context.Background()
+	expiresIn := 12 * time.Hour
+
+	type summaryCounters struct {
+		Total    int
+		Approved int
+		Pending  int
+		Rejected int
+		Failed   int
+	}
+
+	summary := summaryCounters{}
+	lastModeratedAt := time.Time{}
+	pendingBatchMap := make(map[uuid.UUID]struct{})
+
+	photos := make([]fiber.Map, 0, len(media))
+
+	for _, m := range media {
+		summary.Total++
+		switch m.ModerationStatus {
+		case "approved":
+			summary.Approved++
+		case "rejected":
+			summary.Rejected++
+		case "failed":
+			summary.Failed++
+		default:
+			summary.Pending++
+			if m.BatchID != uuid.Nil {
+				pendingBatchMap[m.BatchID] = struct{}{}
+			}
+		}
+
+		if !m.ModeratedAt.IsZero() && m.ModeratedAt.After(lastModeratedAt) {
+			lastModeratedAt = m.ModeratedAt
+		}
+
+		bucket := config.Cfg.S3BucketPhotos
+		if m.MediaType == models.MediaTypeVideo {
+			bucket = config.Cfg.S3BucketVideos
+		}
+
+		downloadURL := ""
+		if m.URL != "" {
+			if url, err := database.GeneratePresignedDownloadURL(ctx, bucket, m.URL, expiresIn); err == nil {
+				downloadURL = url
+			}
+		}
+
+		photos = append(photos, fiber.Map{
+			"id":                m.ID,
+			"batch_id":          m.BatchID,
+			"media_type":        m.MediaType,
+			"status":            m.ModerationStatus,
+			"reason":            m.ModerationReason,
+			"moderated_at":      m.ModeratedAt,
+			"uploaded_at":       m.CreatedAt,
+			"display_order":     m.DisplayOrder,
+			"url":               downloadURL,
+			"scores":            m.ModerationScores,
+			"retry_count":       m.RetryCount,
+			"is_approved":       m.IsApproved,
+			"moderation_status": m.ModerationStatus,
+		})
+	}
+
+	needsMorePhotos := summary.Approved < 2
+	pendingBatchCount := len(pendingBatchMap)
+
+	response := fiber.Map{
+		"summary": fiber.Map{
+			"total_photos":      summary.Total,
+			"approved":          summary.Approved,
+			"pending":           summary.Pending,
+			"rejected":          summary.Rejected,
+			"failed":            summary.Failed,
+			"needs_more_photos": needsMorePhotos,
+			"pending_batches":   pendingBatchCount,
+			"last_moderated_at": lastModeratedAt,
+		},
+		"photos": photos,
+	}
+
+	return c.JSON(response)
 }

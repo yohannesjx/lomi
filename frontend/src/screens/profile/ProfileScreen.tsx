@@ -96,7 +96,7 @@ export const ProfileScreen = ({ navigation }: any) => {
                     <MenuItem
                         icon="📸"
                         label="My Photos"
-                        onPress={() => {}}
+                        onPress={() => navigation.navigate('PhotoModerationStatus', { source: 'profile' })}
                     />
                     <MenuItem
                         icon="💎"

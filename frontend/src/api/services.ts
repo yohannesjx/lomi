@@ -47,6 +47,12 @@ export const UserService = {
         });
         return response.data;
     },
+
+    // Fetch moderation status for current user's media
+    getModerationStatus: async () => {
+        const response = await api.get('/users/media/moderation-status');
+        return response.data;
+    },
 };
 
 // Discovery Service

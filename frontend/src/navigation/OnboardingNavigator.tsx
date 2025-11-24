@@ -28,6 +28,7 @@ import { ReligionScreen } from '../screens/onboarding/ReligionScreen';
 import { VideoScreen } from '../screens/onboarding/VideoScreen';
 import { BioScreen } from '../screens/onboarding/BioScreen';
 import { OnboardingCompleteScreen } from '../screens/onboarding/OnboardingCompleteScreen';
+import { PhotoModerationStatusScreen } from '../screens/moderation/PhotoModerationStatusScreen';
 
 const Stack = createStackNavigator();
 
@@ -137,6 +138,7 @@ export const OnboardingNavigator: React.FC<{ navigation: any }> = ({ navigation 
                 <Stack.Screen name="GenderPreference" component={GenderPreferenceScreen} />
                 <Stack.Screen name="Religion" component={ReligionScreen} />
                 <Stack.Screen name="PhotoUpload" component={PhotoUploadScreen} />
+                <Stack.Screen name="PhotoStatus" component={PhotoModerationStatusScreen} />
                 <Stack.Screen name="Video" component={VideoScreen} />
                 <Stack.Screen name="Bio" component={BioScreen} />
                 <Stack.Screen name="OnboardingComplete" component={OnboardingCompleteScreen} />
