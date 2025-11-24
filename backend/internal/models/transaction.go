@@ -76,6 +76,7 @@ type GiftTransaction struct {
 
 	CoinAmount int     `gorm:"not null"`
 	BirrValue  float64 `gorm:"type:decimal(10,2);not null"`
+	GiftType   string  `gorm:"size:50"` // e.g., "rose", "universe", "lomi_crown"
 
 	MessageID *uuid.UUID `gorm:"type:uuid"`
 	Message   *Message   `gorm:"foreignKey:MessageID"`

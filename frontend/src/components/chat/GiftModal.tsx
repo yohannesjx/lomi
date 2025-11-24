@@ -32,7 +32,8 @@ export const GiftModal: React.FC<GiftModalProps> = ({ visible, onClose, onSendGi
     const loadGifts = async () => {
         try {
             setIsLoading(true);
-            const response = await GiftService.getGifts();
+            // Use new luxury gift shop endpoint
+            const response = await GiftService.getShop();
             setGifts(response.gifts || []);
         } catch (error: any) {
             console.error('Load gifts error:', error);
@@ -46,7 +47,7 @@ export const GiftModal: React.FC<GiftModalProps> = ({ visible, onClose, onSendGi
         if (coinBalance < gift.coin_price) {
             Alert.alert(
                 'Insufficient Coins',
-                `You need ${gift.coin_price} coins to send this gift. You have ${coinBalance} coins.`,
+                `You need ${gift.coin_price.toLocaleString()} LC to send this gift. You have ${coinBalance.toLocaleString()} LC.`,
                 [
                     { text: 'Cancel', style: 'cancel' },
                     {
@@ -96,15 +97,15 @@ export const GiftModal: React.FC<GiftModalProps> = ({ visible, onClose, onSendGi
                     )}
                 </View>
                 <Text style={styles.giftName} numberOfLines={1}>
-                    {item.name_en || item.name_am || 'Gift'}
+                    {item.name || 'Gift'}
                 </Text>
                 <View style={styles.priceTag}>
                     <Text style={[styles.priceText, !canAfford && styles.priceTextDisabled]}>
-                        💎 {item.coin_price}
+                        💎 {item.coin_price?.toLocaleString() || 0}
                     </Text>
                 </View>
                 {!canAfford && (
-                    <Text style={styles.insufficientText}>Need {item.coin_price - coinBalance} more</Text>
+                    <Text style={styles.insufficientText}>Need {(item.coin_price - coinBalance).toLocaleString()} more</Text>
                 )}
             </TouchableOpacity>
         );
@@ -124,7 +125,7 @@ export const GiftModal: React.FC<GiftModalProps> = ({ visible, onClose, onSendGi
                     <View style={styles.header}>
                         <Text style={styles.title}>Send a Gift 🎁</Text>
                         <View style={styles.balanceContainer}>
-                            <Text style={styles.balanceText}>Balance: 💎 {coinBalance}</Text>
+                            <Text style={styles.balanceText}>Balance: 💎 {coinBalance.toLocaleString()}</Text>
                         </View>
                     </View>
 
@@ -141,7 +142,7 @@ export const GiftModal: React.FC<GiftModalProps> = ({ visible, onClose, onSendGi
                         <FlatList
                             data={gifts}
                             renderItem={renderGiftItem}
-                            keyExtractor={item => item.id}
+                            keyExtractor={item => item.type || item.id}
                             numColumns={COLUMN_COUNT}
                             columnWrapperStyle={styles.row}
                             contentContainerStyle={styles.listContent}

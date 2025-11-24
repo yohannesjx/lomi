@@ -74,17 +74,29 @@ func SetupRoutes(app *fiber.App) {
 	protected.Post("/chats/:id/messages", middleware.MessageRateLimit(), handlers.SendMessage)
 	protected.Put("/chats/:id/read", handlers.MarkMessagesAsRead)
 
-	// Gifts
+	// Gifts (Luxury System)
+	protected.Get("/gifts/shop", handlers.GetGiftShop)
+	protected.Post("/gifts/send", handlers.SendGiftLuxury)
+	protected.Get("/gifts/received", handlers.GetGiftsReceived)
+	
+	// Legacy gifts endpoint (keep for backward compatibility)
 	protected.Get("/gifts", handlers.GetGifts)
-	protected.Post("/gifts/send", handlers.SendGift)
 
-	// Coins (with rate limiting for purchases)
+	// Wallet (Luxury System)
+	protected.Get("/wallet/balance", handlers.GetWalletBalance)
+	protected.Post("/wallet/buy", middleware.PurchaseRateLimit(), handlers.BuyCoins)
+	protected.Post("/wallet/buy/webhook", handlers.CoinPurchaseWebhook) // Telebirr webhook
+	
+	// Legacy coins endpoints (keep for backward compatibility)
 	protected.Get("/coins/balance", handlers.GetCoinBalance)
 	protected.Post("/coins/purchase", middleware.PurchaseRateLimit(), handlers.PurchaseCoins)
 	protected.Post("/coins/purchase/confirm", handlers.ConfirmCoinPurchase) // Webhook endpoint
 	protected.Get("/coins/transactions", handlers.GetCoinTransactions)
 
-	// Payouts
+	// Cashout (Luxury System)
+	protected.Post("/cashout/request", handlers.RequestCashout)
+	
+	// Legacy payouts endpoints (keep for backward compatibility)
 	protected.Get("/payouts/balance", handlers.GetPayoutBalance)
 	protected.Post("/payouts/request", handlers.RequestPayout)
 	protected.Get("/payouts/history", handlers.GetPayoutHistory)

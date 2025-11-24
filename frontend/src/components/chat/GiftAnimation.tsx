@@ -7,15 +7,18 @@ const { width, height } = Dimensions.get('window');
 interface GiftAnimationProps {
     visible: boolean;
     gift: {
+        type?: string;
+        name?: string;
         name_en?: string;
         name_am?: string;
         icon_url?: string;
         animation_url?: string;
     };
+    senderName?: string;
     onComplete: () => void;
 }
 
-export const GiftAnimation: React.FC<GiftAnimationProps> = ({ visible, gift, onComplete }) => {
+export const GiftAnimation: React.FC<GiftAnimationProps> = ({ visible, gift, senderName, onComplete }) => {
     const scaleAnim = useRef(new Animated.Value(0)).current;
     const rotateAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -157,8 +160,10 @@ export const GiftAnimation: React.FC<GiftAnimationProps> = ({ visible, gift, onC
                 </View>
 
                 {/* Gift Name */}
-                <Text style={styles.giftName}>{gift.name_en || gift.name_am || 'Gift'}</Text>
-                <Text style={styles.giftMessage}>You received a gift! 🎉</Text>
+                <Text style={styles.giftName}>{gift.name || gift.name_en || gift.name_am || 'Gift'}</Text>
+                <Text style={styles.giftMessage}>
+                    {senderName ? `${senderName} sent you a ${gift.name || 'gift'}! 🎉` : 'You received a gift! 🎉'}
+                </Text>
             </Animated.View>
         </View>
     );

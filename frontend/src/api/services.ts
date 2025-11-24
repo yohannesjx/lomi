@@ -128,8 +128,48 @@ export const ChatService = {
     },
 };
 
-// Gift Service
+// Gift Service (Luxury System)
 export const GiftService = {
+    // New luxury gift endpoints
+    getShop: async () => {
+        const response = await api.get('/gifts/shop');
+        return response.data;
+    },
+
+    getWalletBalance: async () => {
+        const response = await api.get('/wallet/balance');
+        return response.data;
+    },
+
+    buyCoins: async (packId: string) => {
+        const response = await api.post('/wallet/buy', { pack_id: packId });
+        return response.data;
+    },
+
+    sendGiftLuxury: async (data: {
+        receiver_id: string;
+        gift_type: string;
+        match_id?: string;
+    }) => {
+        const response = await api.post('/gifts/send', data);
+        return response.data;
+    },
+
+    getGiftsReceived: async () => {
+        const response = await api.get('/gifts/received');
+        return response.data;
+    },
+
+    requestCashout: async (data: {
+        coins: number;
+        payment_method: 'telebirr' | 'cbe_birr';
+        payment_account: string;
+    }) => {
+        const response = await api.post('/cashout/request', data);
+        return response.data;
+    },
+
+    // Legacy endpoints (backward compatibility)
     getGifts: async () => {
         const response = await api.get('/gifts');
         return response.data;

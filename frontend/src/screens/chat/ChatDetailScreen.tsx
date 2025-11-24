@@ -218,10 +218,10 @@ export const ChatDetailScreen = ({ route, navigation }: any) => {
         setIsGiftModalVisible(false);
 
         try {
-            // Send gift via API
-            const response = await GiftService.sendGift({
+            // Send gift via new luxury gift API
+            const response = await GiftService.sendGiftLuxury({
                 receiver_id: user.id,
-                gift_id: gift.id,
+                gift_type: gift.type || gift.id, // Use type for new system, id for legacy
                 match_id: match_id,
             });
 
@@ -229,7 +229,7 @@ export const ChatDetailScreen = ({ route, navigation }: any) => {
             await loadCoinBalance();
 
             // Send gift message via WebSocket
-            wsService.sendMessage(match_id, '', 'gift', undefined, gift.id);
+            wsService.sendMessage(match_id, '', 'gift', undefined, gift.type || gift.id);
         } catch (error: any) {
             console.error('Send gift error:', error);
             Alert.alert('Error', error.response?.data?.error || 'Failed to send gift');

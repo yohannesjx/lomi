@@ -21,6 +21,7 @@ type Payout struct {
 	UserID uuid.UUID `gorm:"type:uuid;not null;index"`
 	User   User      `gorm:"foreignKey:UserID"`
 
+	Coins                int     `gorm:"type:integer"` // Coin-based cashout
 	GiftBalanceAmount    float64 `gorm:"type:decimal(10,2);not null"`
 	PlatformFeePercentage int    `gorm:"not null;default:25"`
 	PlatformFeeAmount    float64 `gorm:"type:decimal(10,2);not null"`
