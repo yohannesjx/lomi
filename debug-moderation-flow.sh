@@ -51,21 +51,31 @@ echo ""
 # Step 3: Check Redis queue
 echo -e "${YELLOW}Step 3: Redis Queue Status${NC}"
 echo "─────────────────────────────────"
-# Try with password, if fails try without
-if [ -n "${REDIS_PASSWORD}" ]; then
-    QUEUE_LEN=$(docker-compose -f docker-compose.prod.yml --env-file .env.production exec -T redis redis-cli -a "${REDIS_PASSWORD}" LLEN photo_moderation_queue 2>/dev/null | tr -d '\r\n' || echo "0")
-else
-    QUEUE_LEN=$(docker-compose -f docker-compose.prod.yml --env-file .env.production exec -T redis redis-cli LLEN photo_moderation_queue 2>/dev/null | tr -d '\r\n' || echo "0")
+# Try without password first (most common setup)
+QUEUE_LEN=$(docker-compose -f docker-compose.prod.yml --env-file .env.production exec -T redis redis-cli LLEN photo_moderation_queue 2>/dev/null | tr -d '\r\n' 2>/dev/null || echo "")
+
+# If that failed, try with password
+if [ -z "$QUEUE_LEN" ] || [[ "$QUEUE_LEN" == *"NOAUTH"* ]] || [[ "$QUEUE_LEN" == *"AUTH"* ]]; then
+    if [ -n "${REDIS_PASSWORD}" ]; then
+        QUEUE_LEN=$(docker-compose -f docker-compose.prod.yml --env-file .env.production exec -T redis redis-cli -a "${REDIS_PASSWORD}" LLEN photo_moderation_queue 2>/dev/null | tr -d '\r\n' 2>/dev/null || echo "0")
+    else
+        QUEUE_LEN="0"
+    fi
 fi
 
-if [ "$QUEUE_LEN" = "0" ] || [ -z "$QUEUE_LEN" ]; then
-    # Try without password
-    QUEUE_LEN=$(docker-compose -f docker-compose.prod.yml --env-file .env.production exec -T redis redis-cli LLEN photo_moderation_queue 2>/dev/null | tr -d '\r\n' || echo "0")
+# Clean up any error messages
+if [[ "$QUEUE_LEN" == *"NOAUTH"* ]] || [[ "$QUEUE_LEN" == *"AUTH"* ]] || [[ "$QUEUE_LEN" == *"error"* ]]; then
+    QUEUE_LEN="0"
+fi
+
+# Default to 0 if empty
+if [ -z "$QUEUE_LEN" ]; then
+    QUEUE_LEN="0"
 fi
 
 echo "Queue length: $QUEUE_LEN"
 
-if [ "$QUEUE_LEN" -gt 0 ] && [ "$QUEUE_LEN" != "0" ]; then
+if [ "$QUEUE_LEN" -gt 0 ] && [ "$QUEUE_LEN" != "0" ] && [[ ! "$QUEUE_LEN" =~ [^0-9] ]]; then
     echo "Recent jobs in queue:"
     if [ -n "${REDIS_PASSWORD}" ]; then
         docker-compose -f docker-compose.prod.yml --env-file .env.production exec -T redis redis-cli -a "${REDIS_PASSWORD}" LRANGE photo_moderation_queue 0 2 2>/dev/null | head -3 || \
