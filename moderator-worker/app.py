@@ -276,6 +276,8 @@ def check_face_and_age(image_bytes: bytes) -> dict:
 
 def check_nsfw(image_bytes: bytes) -> dict:
     """Check for NSFW content using Falconsai NSFW detection model"""
+    global nsfw_model  # Declare as global to allow modification
+    
     if nsfw_model is None or nsfw_processor is None:
         logger.warning("NSFW model not loaded, skipping NSFW check")
         return {
@@ -285,23 +287,32 @@ def check_nsfw(image_bytes: bytes) -> dict:
         }
     
     try:
-        # Ensure model is on CPU if no GPU (float16 doesn't work on CPU)
+        # Ensure model is on correct device
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        if device == "cpu":
-            nsfw_model.to(device)
-            # Convert model to float32 if it's float16 and we're on CPU
-            if next(nsfw_model.parameters()).dtype == torch.float16:
-                logger.warning("Converting NSFW model to float32 for CPU compatibility")
-                nsfw_model = nsfw_model.float()
+        model_device = next(nsfw_model.parameters()).device
+        model_dtype = next(nsfw_model.parameters()).dtype
+        
+        # Move model to device if needed
+        if model_device.type != device:
+            nsfw_model = nsfw_model.to(device)
+        
+        # Convert to float32 if on CPU and model is float16 (shouldn't happen, but safety check)
+        if device == "cpu" and model_dtype == torch.float16:
+            logger.warning("Converting NSFW model to float32 for CPU compatibility")
+            nsfw_model = nsfw_model.float()
+            model_dtype = torch.float32
+        
         # Load image
         image = Image.open(BytesIO(image_bytes)).convert("RGB")
         
         # Process image
         inputs = nsfw_processor(images=image, return_tensors="pt")
         
-        # Move inputs to same device as model
-        device = next(nsfw_model.parameters()).device
-        inputs = {k: v.to(device) for k, v in inputs.items()}
+        # Move inputs to same device and dtype as model
+        current_device = next(nsfw_model.parameters()).device
+        current_dtype = next(nsfw_model.parameters()).dtype
+        inputs = {k: v.to(current_device).to(current_dtype) if v.dtype.is_floating_point else v.to(current_device) 
+                 for k, v in inputs.items()}
         
         # Run inference
         with torch.no_grad():
