@@ -44,8 +44,14 @@ export const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
     },
     timeout: 30000, // 30 second timeout
+    params: {
+        _t: Date.now(), // Cache busting timestamp
+    },
 });
 
 // Log API URL for debugging
@@ -54,9 +60,15 @@ if (typeof window !== 'undefined') {
     console.log('🌐 Current hostname:', window.location.hostname);
 }
 
-// Add interceptor to inject token
+// Add interceptor to inject token and cache-busting
 api.interceptors.request.use(
     async (config) => {
+        // Add cache-busting timestamp to all requests
+        config.params = {
+            ...config.params,
+            _t: Date.now(),
+        };
+        
         // Don't overwrite Authorization header if it's already set (e.g., for Telegram login)
         if (!config.headers.Authorization) {
             const token = await storage.getItem('lomi_access_token');
