@@ -97,7 +97,8 @@ export const ReligionScreen = ({ navigation }: any) => {
                     />
                 </View>
             </ScrollView>
-        </SafeAreaView>
+            </SafeAreaView>
+        </View>
     );
 };
 
