@@ -31,30 +31,94 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
 
     const compressImage = async (uri: string): Promise<string> => {
         try {
-            // Compress and resize image to reduce file size
-            // Max width: 1080px (good quality, reasonable size)
-            // Quality: 0.7 (good balance between quality and file size)
-            const manipulatedImage = await manipulateAsync(
-                uri,
-                [
-                    { resize: { width: 1080 } }, // Resize to max 1080px width (maintains aspect ratio)
-                ],
-                {
-                    compress: 0.7, // 70% quality (good balance)
-                    format: SaveFormat.JPEG, // Always use JPEG for smaller file size
-                }
-            );
+            // Web: Use canvas to compress images
+            if (Platform.OS === 'web' && typeof document !== 'undefined') {
+                return await compressImageWeb(uri);
+            }
             
-            console.log('✅ Image compressed:', {
-                original: uri.substring(0, 50),
-                compressed: manipulatedImage.uri.substring(0, 50),
-            });
-            
-            return manipulatedImage.uri;
+            // Mobile: Try to use expo-image-manipulator if available
+            try {
+                const { manipulateAsync, SaveFormat } = require('expo-image-manipulator');
+                const manipulatedImage = await manipulateAsync(
+                    uri,
+                    [
+                        { resize: { width: 1080 } }, // Resize to max 1080px width (maintains aspect ratio)
+                    ],
+                    {
+                        compress: 0.7, // 70% quality (good balance)
+                        format: SaveFormat.JPEG, // Always use JPEG for smaller file size
+                    }
+                );
+                
+                console.log('✅ Image compressed (mobile):', {
+                    original: uri.substring(0, 50),
+                    compressed: manipulatedImage.uri.substring(0, 50),
+                });
+                
+                return manipulatedImage.uri;
+            } catch (mobileError) {
+                console.warn('⚠️ Mobile compression not available, using original:', mobileError);
+                return uri;
+            }
         } catch (error) {
             console.warn('⚠️ Image compression failed, using original:', error);
             return uri; // Fallback to original if compression fails
         }
+    };
+
+    const compressImageWeb = async (uri: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            try {
+                const img = document.createElement('img') as HTMLImageElement;
+                img.crossOrigin = 'anonymous';
+                
+                img.onload = () => {
+                    try {
+                        // Calculate new dimensions (max 1080px width)
+                        const maxWidth = 1080;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+                        
+                        // Create canvas
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        
+                        if (!ctx) {
+                            reject(new Error('Could not get canvas context'));
+                            return;
+                        }
+                        
+                        // Draw and compress
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                        
+                        console.log('✅ Image compressed (web):', {
+                            original: `${img.width}x${img.height}`,
+                            compressed: `${width}x${height}`,
+                        });
+                        
+                        resolve(compressedDataUrl);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                img.onerror = () => {
+                    reject(new Error('Failed to load image'));
+                };
+                
+                img.src = uri;
+            } catch (error) {
+                reject(error);
+            }
+        });
     };
 
     const pickImage = async (index: number) => {
