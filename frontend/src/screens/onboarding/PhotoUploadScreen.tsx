@@ -357,8 +357,8 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
         // Count photos that are selected (either uploaded or uploading)
         const selectedPhotos = photos.filter(p => p.uri !== null);
 
-        if (selectedPhotos.length < 2) {
-            Alert.alert('More Photos Needed', 'Please select at least 2 photos to continue.');
+        if (selectedPhotos.length < 1) {
+            Alert.alert('Photo Needed', 'Please select at least 1 photo to continue.');
             return;
         }
 
@@ -545,7 +545,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 <View style={styles.header}>
                     <Text style={styles.stepIndicator}>Step 5 of {TOTAL_ONBOARDING_STEPS}</Text>
                     <Text style={styles.title}>Add your best photos</Text>
-                    <Text style={styles.subtitle}>Upload at least 2 photos to start matching</Text>
+                    <Text style={styles.subtitle}>Upload at least 1 photo to start matching</Text>
                 </View>
 
                 <View style={styles.grid}>
@@ -558,7 +558,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                     <Button
                         title={isSubmitting ? "Saving..." : "Next Step"}
                         onPress={handleNext}
-                        disabled={photos.filter(p => p.fileKey !== null).length < 2 || isSubmitting}
+                        disabled={photos.filter(p => p.fileKey !== null).length < 1 || isSubmitting}
                         isLoading={isSubmitting}
                         size="large"
                     />
