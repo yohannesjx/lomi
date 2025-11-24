@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert, Platform, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
 import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
@@ -34,14 +34,14 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             // Compress and resize image to reduce file size
             // Max width: 1080px (good quality, reasonable size)
             // Quality: 0.7 (good balance between quality and file size)
-            const manipulatedImage = await ImageManipulator.manipulateAsync(
+            const manipulatedImage = await manipulateAsync(
                 uri,
                 [
                     { resize: { width: 1080 } }, // Resize to max 1080px width (maintains aspect ratio)
                 ],
                 {
                     compress: 0.7, // 70% quality (good balance)
-                    format: ImageManipulator.SaveFormat.JPEG, // Always use JPEG for smaller file size
+                    format: SaveFormat.JPEG, // Always use JPEG for smaller file size
                 }
             );
             
