@@ -85,6 +85,36 @@ def download_image_from_r2(r2_url: str) -> bytes:
         raise
 
 
+def check_face_opencv(image_bytes: bytes) -> dict:
+    """Fallback face detection using OpenCV Haar Cascade"""
+    try:
+        import cv2
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            return {"has_face": False, "face_count": 0}
+        
+        # Convert to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # Load face cascade (OpenCV includes this)
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        
+        # Detect faces
+        faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+        face_count = len(faces)
+        
+        return {
+            "has_face": face_count > 0,
+            "face_count": face_count,
+            "estimated_age": None  # OpenCV can't estimate age
+        }
+    except Exception as e:
+        logger.error(f"OpenCV face detection failed: {e}")
+        return {"has_face": False, "face_count": 0, "estimated_age": None}
+
+
 def check_blur(image_bytes: bytes) -> dict:
     """Check if image is blurry using OpenCV Laplacian variance"""
     try:
@@ -336,11 +366,19 @@ def moderate_photo(photo_job: dict) -> dict:
         
         # Check face - but only if CompreFace is working (not connection error)
         elif "error" in face_result:
-            # CompreFace failed - log but don't reject (temporary fallback for debugging)
-            logger.warning(f"⚠️ CompreFace error: {face_result.get('error')} - approving photo for now")
-            # Uncomment below to reject when CompreFace fails:
-            # status = "rejected"
-            # reason = "no_face"
+            # CompreFace failed - use OpenCV as fallback for basic face detection
+            logger.warning(f"⚠️ CompreFace error: {face_result.get('error')} - trying OpenCV fallback")
+            opencv_face_result = check_face_opencv(image_bytes)
+            if opencv_face_result["has_face"]:
+                logger.info(f"✅ OpenCV fallback detected face - approving")
+                # Use OpenCV result
+                face_result = opencv_face_result
+            else:
+                logger.warning(f"⚠️ Both CompreFace and OpenCV failed - approving for now (CompreFace not set up)")
+                # Temporary: approve if CompreFace is not available (until we fix it)
+                # TODO: Re-enable rejection once CompreFace is working
+                # status = "rejected"
+                # reason = "no_face"
         elif not face_result["has_face"]:
             status = "rejected"
             reason = "no_face"
