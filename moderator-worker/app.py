@@ -60,11 +60,24 @@ try:
     
     model_name = "Falconsai/nsfw_image_detection"
     nsfw_processor = AutoImageProcessor.from_pretrained(model_name)
-    nsfw_model = AutoModelForImageClassification.from_pretrained(
-        model_name,
-        torch_dtype=torch.float16,
-        device_map="auto"
-    )
+    
+    # Use float32 for CPU (float16 not supported on CPU)
+    # Check if CUDA is available for GPU
+    if torch.cuda.is_available():
+        logger.info("Using GPU with float16 for NSFW model")
+        nsfw_model = AutoModelForImageClassification.from_pretrained(
+            model_name,
+            torch_dtype=torch.float16,
+            device_map="auto"
+        )
+    else:
+        logger.info("Using CPU with float32 for NSFW model (CPU doesn't support float16)")
+        nsfw_model = AutoModelForImageClassification.from_pretrained(
+            model_name,
+            torch_dtype=torch.float32,
+            device_map="cpu"
+        )
+    
     nsfw_model.eval()  # Set to evaluation mode
     logger.info("✅ NSFW model loaded successfully")
 except Exception as e:
@@ -269,6 +282,14 @@ def check_nsfw(image_bytes: bytes) -> dict:
         }
     
     try:
+        # Ensure model is on CPU if no GPU (float16 doesn't work on CPU)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        if device == "cpu":
+            nsfw_model.to(device)
+            # Convert model to float32 if it's float16 and we're on CPU
+            if next(nsfw_model.parameters()).dtype == torch.float16:
+                logger.warning("Converting NSFW model to float32 for CPU compatibility")
+                nsfw_model = nsfw_model.float()
         # Load image
         image = Image.open(BytesIO(image_bytes)).convert("RGB")
         
