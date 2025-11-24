@@ -101,7 +101,20 @@ def download_image_from_r2(r2_url: str) -> bytes:
 
 
 def check_face_opencv(image_bytes: bytes) -> dict:
-    """Fallback face detection using OpenCV Haar Cascade - STRICT MODE"""
+    """
+    Fallback face detection using OpenCV Haar Cascade with age estimation.
+    
+    NOTE: This is a fallback when CompreFace is unavailable.
+    For accurate age estimation, CompreFace should be running.
+    This method uses face size heuristics which are less accurate but better than nothing.
+    
+    Age estimation logic:
+    - Very small faces (< 3% image area) = babies (age ~5)
+    - Small faces (3-5% image area) = children (age ~10)
+    - Medium-small faces (5-7% image area) = teens (age ~15)
+    - Medium faces (7-10% image area) = young adults (age ~20)
+    - Large faces (> 10% image area) = adults (age ~25)
+    """
     try:
         import cv2
         nparr = np.frombuffer(image_bytes, np.uint8)
@@ -157,19 +170,57 @@ def check_face_opencv(image_bytes: bytes) -> dict:
         
         face_count = len(valid_faces)
         
-        # Estimate age from face size (rough heuristic: very small faces might be babies)
-        # Average adult face is typically 8-12% of image area in a portrait
-        # Baby faces are typically 3-6% of image area
+        # Estimate age from face size and facial features (improved heuristic)
+        # Average adult face is typically 8-15% of image area in a portrait
+        # Baby faces are typically 2-5% of image area
+        # Children (5-12 years): 5-8% of image area
+        # Teens (13-17 years): 6-10% of image area
         estimated_age = None
         if face_count > 0 and len(face_sizes) > 0:
-            avg_face_ratio = sum(size[2] for size in face_sizes) / len(face_sizes)
-            # If face is very small relative to image, likely a baby/child
-            if avg_face_ratio < 0.04:  # Less than 4% of image - likely underage
-                estimated_age = 12  # Conservative estimate
-                logger.info(f"OpenCV: Small face detected (ratio={avg_face_ratio:.3f}) - estimated age < 18")
-            elif avg_face_ratio < 0.06:  # Less than 6% - possibly underage
-                estimated_age = 16  # Conservative estimate
-                logger.info(f"OpenCV: Medium-small face detected (ratio={avg_face_ratio:.3f}) - estimated age ~16")
+            # Get the largest face (most likely the main subject)
+            largest_face = max(face_sizes, key=lambda s: s[0] * s[1])  # Sort by area (w * h)
+            face_w, face_h, face_ratio = largest_face
+            
+            # Calculate face dimensions relative to image
+            face_width_ratio = face_w / width
+            face_height_ratio = face_h / height
+            
+            # Additional heuristic: check face position (babies often centered, adults vary)
+            # But this is less reliable, so we'll focus on size
+            
+            # STRICT age estimation based on face size
+            # Very small faces (< 3% of image) = babies/toddlers (0-5 years)
+            if face_ratio < 0.03:
+                estimated_age = 5  # Very conservative - likely baby/toddler
+                logger.info(f"OpenCV: Very small face detected (ratio={face_ratio:.3f}, {face_w}x{face_h}px) - estimated age ~5 (BABY)")
+            
+            # Small faces (3-5% of image) = children (6-12 years)
+            elif face_ratio < 0.05:
+                estimated_age = 10  # Conservative - likely child
+                logger.info(f"OpenCV: Small face detected (ratio={face_ratio:.3f}, {face_w}x{face_h}px) - estimated age ~10 (CHILD)")
+            
+            # Medium-small faces (5-7% of image) = teens (13-17 years) - REJECT
+            elif face_ratio < 0.07:
+                estimated_age = 15  # Conservative - likely teen
+                logger.info(f"OpenCV: Medium-small face detected (ratio={face_ratio:.3f}, {face_w}x{face_h}px) - estimated age ~15 (TEEN)")
+            
+            # Medium faces (7-10% of image) = young adults (18-25 years) - might be borderline
+            elif face_ratio < 0.10:
+                estimated_age = 20  # Could be young adult, but be conservative
+                logger.info(f"OpenCV: Medium face detected (ratio={face_ratio:.3f}, {face_w}x{face_h}px) - estimated age ~20 (YOUNG ADULT)")
+            
+            # Large faces (> 10% of image) = adults (25+ years) - APPROVE
+            else:
+                estimated_age = 25  # Likely adult
+                logger.info(f"OpenCV: Large face detected (ratio={face_ratio:.3f}, {face_w}x{face_h}px) - estimated age ~25 (ADULT)")
+            
+            # Additional check: if face is very small in absolute pixels, likely a baby
+            # Typical baby face in a photo: 50-100 pixels wide
+            # Typical adult face in a photo: 150-300 pixels wide
+            if face_w < 80 or face_h < 80:
+                if estimated_age is None or estimated_age > 10:
+                    estimated_age = 8  # Very small absolute size = likely child
+                    logger.info(f"OpenCV: Very small absolute face size ({face_w}x{face_h}px) - adjusting age estimate to ~8")
         
         logger.info(f"OpenCV face detection: found {len(faces)} candidate(s), {face_count} valid face(s) (image: {width}x{height}, estimated_age={estimated_age})")
         
@@ -491,11 +542,15 @@ def moderate_photo(photo_job: dict) -> dict:
             reason = "group_photo"
             logger.info(f"❌ Rejected: group photo detected ({face_result.get('face_count', 0)} faces - only single person photos allowed)")
         
-        # Check age (including OpenCV age estimation)
-        elif face_result.get("estimated_age") and face_result["estimated_age"] < 18:
-            status = "rejected"
-            reason = "underage"
-            logger.info(f"❌ Rejected: underage (age={face_result.get('estimated_age')})")
+        # Check age (including OpenCV age estimation) - STRICT: reject if age < 18
+        elif face_result.get("estimated_age") is not None:
+            estimated_age = face_result.get("estimated_age")
+            if estimated_age < 18:
+                status = "rejected"
+                reason = "underage"
+                logger.info(f"❌ Rejected: underage (estimated_age={estimated_age} < 18)")
+            else:
+                logger.info(f"✅ Age check passed: estimated_age={estimated_age} >= 18")
         
         # Check NSFW - STRICT MULTI-LEVEL CHECKING
         porn_score = nsfw_result.get("porn", 0)
