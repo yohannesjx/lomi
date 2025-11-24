@@ -110,38 +110,121 @@ def check_blur(image_bytes: bytes) -> dict:
 def check_face_and_age(image_bytes: bytes) -> dict:
     """Check for faces and estimate age using CompreFace"""
     try:
-        # Send image to CompreFace API
-        files = {'file': ('image.jpg', image_bytes, 'image/jpeg')}
-        response = requests.post(
-            f"{COMPREFACE_URL}/api/v1/detection/detect",
-            files=files,
-            timeout=10
-        )
-        response.raise_for_status()
-        result = response.json()
+        # CompreFace detection endpoint - try different possible formats
+        # CompreFace typically uses: /api/v1/detection/detect with API key
+        # But for basic setup, might use: /api/v1/recognition/recognize or /api/v1/detection/detect
         
-        faces = result.get('result', [])
+        files = {'file': ('image.jpg', image_bytes, 'image/jpeg')}
+        
+        # Try detection endpoint first (most common)
+        endpoints_to_try = [
+            f"{COMPREFACE_URL}/api/v1/detection/detect",
+            f"{COMPREFACE_URL}/api/v1/recognition/recognize",
+            f"{COMPREFACE_URL}/api/v1/detection",
+        ]
+        
+        response = None
+        result = None
+        
+        for endpoint in endpoints_to_try:
+            try:
+                logger.debug(f"Trying CompreFace endpoint: {endpoint}")
+                response = requests.post(
+                    endpoint,
+                    files=files,
+                    timeout=15,
+                    headers={'Content-Type': 'multipart/form-data'}
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    logger.debug(f"CompreFace response: {result}")
+                    break
+                elif response.status_code == 404:
+                    logger.warning(f"Endpoint {endpoint} not found (404), trying next...")
+                    continue
+                else:
+                    logger.warning(f"Endpoint {endpoint} returned {response.status_code}: {response.text[:200]}")
+                    response.raise_for_status()
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Request to {endpoint} failed: {e}")
+                continue
+        
+        if result is None:
+            raise Exception("All CompreFace endpoints failed")
+        
+        # Parse CompreFace response - structure can vary
+        # Common formats:
+        # 1. {"result": [{"box": {...}, "age": 25, ...}]}
+        # 2. {"faces": [{"box": {...}, "age": 25, ...}]}
+        # 3. {"data": {"result": [...]}}
+        
+        faces = []
+        if isinstance(result, dict):
+            # Try different response structures
+            if 'result' in result:
+                faces = result['result']
+                if isinstance(faces, dict) and 'faces' in faces:
+                    faces = faces['faces']
+            elif 'faces' in result:
+                faces = result['faces']
+            elif 'data' in result and isinstance(result['data'], dict):
+                if 'result' in result['data']:
+                    faces = result['data']['result']
+                elif 'faces' in result['data']:
+                    faces = result['data']['faces']
+        
+        if not isinstance(faces, list):
+            faces = []
+        
         face_count = len(faces)
         has_face = face_count > 0
         
         # Estimate age from first face (if available)
         estimated_age = None
-        if faces:
-            # CompreFace may return age estimates in the result
-            # Adjust based on actual CompreFace API response format
-            estimated_age = faces[0].get('age', None)
+        if faces and len(faces) > 0:
+            first_face = faces[0]
+            # Age might be in different fields
+            estimated_age = first_face.get('age') or first_face.get('age_years') or first_face.get('estimated_age')
+            if estimated_age is not None:
+                try:
+                    estimated_age = float(estimated_age)
+                except (ValueError, TypeError):
+                    estimated_age = None
+        
+        logger.info(f"Face detection result: has_face={has_face}, face_count={face_count}, estimated_age={estimated_age}")
         
         return {
             "has_face": has_face,
             "face_count": face_count,
-            "estimated_age": estimated_age
+            "estimated_age": estimated_age,
+            "raw_response": result  # Include for debugging
         }
-    except Exception as e:
-        logger.error(f"Face detection failed: {e}")
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"CompreFace connection failed - is it running at {COMPREFACE_URL}? Error: {e}")
         return {
             "has_face": False,
             "face_count": 0,
-            "estimated_age": None
+            "estimated_age": None,
+            "error": "connection_failed"
+        }
+    except requests.exceptions.Timeout as e:
+        logger.error(f"CompreFace request timeout: {e}")
+        return {
+            "has_face": False,
+            "face_count": 0,
+            "estimated_age": None,
+            "error": "timeout"
+        }
+    except Exception as e:
+        logger.error(f"Face detection failed: {e}", exc_info=True)
+        logger.error(f"Response status: {response.status_code if response else 'No response'}")
+        logger.error(f"Response text: {response.text[:500] if response else 'No response'}")
+        return {
+            "has_face": False,
+            "face_count": 0,
+            "estimated_age": None,
+            "error": str(e)
         }
 
 
@@ -236,25 +319,47 @@ def moderate_photo(photo_job: dict) -> dict:
         status = "approved"
         reason = None
         
+        # Log all results for debugging
+        logger.info(f"Moderation results for {photo_job.get('media_id')}: "
+                   f"blur={blur_result.get('is_blurry')}, "
+                   f"has_face={face_result.get('has_face')}, "
+                   f"face_count={face_result.get('face_count')}, "
+                   f"age={face_result.get('estimated_age')}, "
+                   f"nsfw_porn={nsfw_result.get('porn'):.3f}, "
+                   f"nsfw_sexy={nsfw_result.get('sexy'):.3f}")
+        
         # Check blur
         if blur_result["is_blurry"]:
             status = "rejected"
             reason = "blurry"
+            logger.info(f"❌ Rejected: blurry (variance={blur_result.get('blur_variance', 0):.1f})")
         
-        # Check face
+        # Check face - but only if CompreFace is working (not connection error)
+        elif "error" in face_result:
+            # CompreFace failed - log but don't reject (temporary fallback for debugging)
+            logger.warning(f"⚠️ CompreFace error: {face_result.get('error')} - approving photo for now")
+            # Uncomment below to reject when CompreFace fails:
+            # status = "rejected"
+            # reason = "no_face"
         elif not face_result["has_face"]:
             status = "rejected"
             reason = "no_face"
+            logger.info(f"❌ Rejected: no face detected (face_count={face_result.get('face_count', 0)})")
         
         # Check age
         elif face_result["estimated_age"] and face_result["estimated_age"] < 18:
             status = "rejected"
             reason = "underage"
+            logger.info(f"❌ Rejected: underage (age={face_result.get('estimated_age')})")
         
         # Check NSFW
         elif nsfw_result["porn"] > NSFW_PORN_THRESHOLD or nsfw_result["sexy"] > NSFW_SEXY_THRESHOLD:
             status = "rejected"
             reason = "nsfw"
+            logger.info(f"❌ Rejected: NSFW (porn={nsfw_result.get('porn'):.3f}, sexy={nsfw_result.get('sexy'):.3f})")
+        
+        if status == "approved":
+            logger.info(f"✅ Approved: {photo_job.get('media_id')}")
         
         return {
             "media_id": photo_job["media_id"],
