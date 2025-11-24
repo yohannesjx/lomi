@@ -88,7 +88,8 @@ export const OnboardingCompleteScreen = ({ navigation }: any) => {
                     />
                 </View>
             </View>
-        </SafeAreaView>
+            </SafeAreaView>
+        </View>
     );
 };
 
