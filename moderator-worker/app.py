@@ -99,14 +99,19 @@ def download_image_from_r2(r2_url: str) -> bytes:
 
 
 def check_face_opencv(image_bytes: bytes) -> dict:
-    """Fallback face detection using OpenCV Haar Cascade"""
+    """Fallback face detection using OpenCV Haar Cascade - STRICT MODE"""
     try:
         import cv2
         nparr = np.frombuffer(image_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if img is None:
+            logger.warning("OpenCV: Failed to decode image")
             return {"has_face": False, "face_count": 0}
+        
+        height, width = img.shape[:2]
+        min_face_size = max(50, int(min(width, height) * 0.1))  # At least 10% of smaller dimension
+        max_face_size = int(min(width, height) * 0.8)  # Max 80% of smaller dimension
         
         # Convert to grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -114,12 +119,38 @@ def check_face_opencv(image_bytes: bytes) -> dict:
         # Load face cascade (OpenCV includes this)
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         
-        # Detect faces with stricter parameters to reduce false positives
-        # scaleFactor=1.2 (less sensitive), minNeighbors=5 (more strict)
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5, minSize=(30, 30))
-        face_count = len(faces)
+        # VERY STRICT parameters to reduce false positives
+        # scaleFactor=1.3 (less sensitive), minNeighbors=6 (very strict), larger minSize
+        faces = face_cascade.detectMultiScale(
+            gray, 
+            scaleFactor=1.3,  # More conservative
+            minNeighbors=6,   # Require more neighbors (stricter)
+            minSize=(min_face_size, min_face_size),  # Minimum face size based on image
+            maxSize=(max_face_size, max_face_size),   # Maximum face size
+            flags=cv2.CASCADE_SCALE_IMAGE
+        )
         
-        logger.info(f"OpenCV face detection: found {face_count} face(s)")
+        # Additional validation: check if detected faces are reasonable
+        valid_faces = []
+        for (x, y, w, h) in faces:
+            # Face should be reasonably sized relative to image
+            face_area = w * h
+            image_area = width * height
+            face_ratio = face_area / image_area
+            
+            # Face should be between 2% and 50% of image area
+            if 0.02 <= face_ratio <= 0.5:
+                # Face should be roughly square (width/height ratio between 0.7 and 1.4)
+                aspect_ratio = w / h if h > 0 else 0
+                if 0.7 <= aspect_ratio <= 1.4:
+                    valid_faces.append((x, y, w, h))
+                else:
+                    logger.debug(f"OpenCV: Rejected face with bad aspect ratio {aspect_ratio:.2f}")
+            else:
+                logger.debug(f"OpenCV: Rejected face with bad size ratio {face_ratio:.3f}")
+        
+        face_count = len(valid_faces)
+        logger.info(f"OpenCV face detection: found {len(faces)} candidate(s), {face_count} valid face(s) (image: {width}x{height})")
         
         return {
             "has_face": face_count > 0,
@@ -385,13 +416,14 @@ def moderate_photo(photo_job: dict) -> dict:
         reason = None
         
         # Log all results for debugging
-        logger.info(f"Moderation results for {photo_job.get('media_id')}: "
-                   f"blur={blur_result.get('is_blurry')}, "
+        logger.info(f"📊 Moderation results for {photo_job.get('media_id')}: "
+                   f"blur={blur_result.get('is_blurry')} (var={blur_result.get('blur_variance', 0):.1f}), "
                    f"has_face={face_result.get('has_face')}, "
                    f"face_count={face_result.get('face_count')}, "
                    f"age={face_result.get('estimated_age')}, "
                    f"nsfw_porn={nsfw_result.get('porn'):.3f}, "
-                   f"nsfw_sexy={nsfw_result.get('sexy'):.3f}")
+                   f"nsfw_sexy={nsfw_result.get('sexy'):.3f}, "
+                   f"nsfw_hentai={nsfw_result.get('hentai', 0):.3f}")
         
         # Check blur
         if blur_result["is_blurry"]:
@@ -405,11 +437,12 @@ def moderate_photo(photo_job: dict) -> dict:
             logger.warning(f"⚠️ CompreFace error: {face_result.get('error')} - trying OpenCV fallback")
             opencv_face_result = check_face_opencv(image_bytes)
             if opencv_face_result["has_face"]:
-                logger.info(f"✅ OpenCV fallback detected {opencv_face_result['face_count']} face(s) - approving")
-                # Use OpenCV result
+                logger.info(f"✅ OpenCV fallback detected {opencv_face_result['face_count']} valid face(s)")
+                # Use OpenCV result (but note: no age estimation available)
                 face_result = opencv_face_result
+                # Continue to NSFW check (age check will be skipped since estimated_age is None)
             else:
-                logger.warning(f"⚠️ Both CompreFace and OpenCV failed - rejecting (no face detected)")
+                logger.warning(f"❌ Both CompreFace and OpenCV failed - rejecting (no face detected)")
                 status = "rejected"
                 reason = "no_face"
         elif not face_result["has_face"]:
@@ -429,8 +462,16 @@ def moderate_photo(photo_job: dict) -> dict:
             reason = "nsfw"
             logger.info(f"❌ Rejected: NSFW (porn={nsfw_result.get('porn'):.3f}, sexy={nsfw_result.get('sexy'):.3f})")
         
+        # Warn if NSFW scores are all zero (might indicate model not working)
+        if (nsfw_result.get("porn", 0) == 0.0 and 
+            nsfw_result.get("sexy", 0) == 0.0 and 
+            nsfw_result.get("hentai", 0) == 0.0):
+            logger.warning(f"⚠️ NSFW scores are all zero - model might not be working properly")
+        
         if status == "approved":
-            logger.info(f"✅ Approved: {photo_job.get('media_id')}")
+            logger.info(f"✅ Approved: {photo_job.get('media_id')} (passed all checks)")
+        else:
+            logger.info(f"❌ Rejected: {photo_job.get('media_id')} - reason: {reason}")
         
         return {
             "media_id": photo_job["media_id"],
