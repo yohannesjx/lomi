@@ -114,9 +114,12 @@ def check_face_opencv(image_bytes: bytes) -> dict:
         # Load face cascade (OpenCV includes this)
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         
-        # Detect faces
-        faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+        # Detect faces with stricter parameters to reduce false positives
+        # scaleFactor=1.2 (less sensitive), minNeighbors=5 (more strict)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5, minSize=(30, 30))
         face_count = len(faces)
+        
+        logger.info(f"OpenCV face detection: found {face_count} face(s)")
         
         return {
             "has_face": face_count > 0,
@@ -391,15 +394,13 @@ def moderate_photo(photo_job: dict) -> dict:
             logger.warning(f"⚠️ CompreFace error: {face_result.get('error')} - trying OpenCV fallback")
             opencv_face_result = check_face_opencv(image_bytes)
             if opencv_face_result["has_face"]:
-                logger.info(f"✅ OpenCV fallback detected face - approving")
+                logger.info(f"✅ OpenCV fallback detected {opencv_face_result['face_count']} face(s) - approving")
                 # Use OpenCV result
                 face_result = opencv_face_result
             else:
-                logger.warning(f"⚠️ Both CompreFace and OpenCV failed - approving for now (CompreFace not set up)")
-                # Temporary: approve if CompreFace is not available (until we fix it)
-                # TODO: Re-enable rejection once CompreFace is working
-                # status = "rejected"
-                # reason = "no_face"
+                logger.warning(f"⚠️ Both CompreFace and OpenCV failed - rejecting (no face detected)")
+                status = "rejected"
+                reason = "no_face"
         elif not face_result["has_face"]:
             status = "rejected"
             reason = "no_face"
