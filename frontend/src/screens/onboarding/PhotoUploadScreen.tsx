@@ -400,10 +400,13 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             setHasCalledUploadComplete(true);
 
             console.log('📤 Calling upload-complete endpoint with batch:', photosBatch);
-            let uploadCompleteResult;
+            let uploadCompleteResult: any = null;
             try {
                 uploadCompleteResult = await UserService.uploadComplete(photosBatch);
                 console.log('✅ Upload-complete response:', uploadCompleteResult);
+                
+                // Navigate to status screen on success
+                navigateToStatusScreen(uploadCompleteResult);
             } catch (error: any) {
                 // Handle 429 rate limit error
                 if (error?.response?.status === 429) {
@@ -415,8 +418,8 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                             {
                                 text: 'Continue Anyway',
                                 onPress: () => {
-                                    // Continue navigation even if rate limited
-                                    navigateToStatusScreen(uploadCompleteResult);
+                                    // Continue navigation even if rate limited (use null batchId)
+                                    navigateToStatusScreen(null);
                                 }
                             },
                             {
@@ -431,9 +434,6 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 }
                 throw error; // Re-throw other errors
             }
-
-            // Navigate to status screen
-            navigateToStatusScreen(uploadCompleteResult);
         } catch (error: any) {
             console.error('Submit error:', error);
             setHasCalledUploadComplete(false); // Allow retry on error
