@@ -1,40 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
-import { Input } from '../../components/ui/Input';
 import { COLORS, SPACING, SIZES } from '../../theme/colors';
 import { UserService } from '../../api/services';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import { useAuthStore } from '../../store/authStore';
 import { TOTAL_ONBOARDING_STEPS } from '../../navigation/OnboardingNavigator';
 
+const ETHIOPIAN_CITIES = [
+    'Addis Ababa',
+    'Dire Dawa',
+    'Mekelle',
+    'Gondar',
+    'Hawassa',
+    'Bahir Dar',
+    'Dessie',
+    'Jimma',
+    'Jijiga',
+    'Shashamane',
+    'Bishoftu',
+    'Arba Minch',
+    'Hosaena',
+    'Harar',
+    'Dilla',
+    'Nekemte',
+    'Debre Birhan',
+    'Asella',
+    'Debre Markos',
+    'Kombolcha',
+];
+
 export const CityScreen = ({ navigation }: any) => {
-    const [city, setCity] = useState('');
+    const [selectedCity, setSelectedCity] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const { updateStep } = useOnboardingStore();
     const { user } = useAuthStore();
 
     useEffect(() => {
-        // Load existing city if available
         if (user?.city && user.city !== 'Not Set') {
-            setCity(user.city);
+            setSelectedCity(user.city);
         }
     }, [user]);
 
     const handleNext = async () => {
-        if (!city.trim()) return;
+        if (!selectedCity) return;
 
         setIsSaving(true);
         try {
-            // Save city to profile
-            await UserService.updateProfile({ city: city.trim() });
-
-            // Update onboarding step to 2 (city done)
+            await UserService.updateProfile({ city: selectedCity });
             await updateStep(2);
-
-            // Navigate to next step
             navigation.navigate('GenderPreference');
         } catch (error: any) {
             console.error('Save city error:', error);
@@ -48,30 +64,36 @@ export const CityScreen = ({ navigation }: any) => {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
             <SafeAreaView style={styles.safeArea} edges={['bottom']}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={styles.keyboardView}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-            >
                 <BackButton />
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
-                    keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
                     <View style={styles.header}>
                         <Text style={styles.title}>Where are you located?</Text>
-                        <Text style={styles.subtitle}>This helps us find matches near you</Text>
+                        <Text style={styles.subtitle}>Select your city</Text>
                     </View>
 
-                    <View style={styles.form}>
-                        <Input
-                            label="City"
-                            placeholder="e.g. Addis Ababa"
-                            value={city}
-                            onChangeText={setCity}
-                            autoCapitalize="words"
-                        />
+                    <View style={styles.citiesGrid}>
+                        {ETHIOPIAN_CITIES.map((city) => (
+                            <TouchableOpacity
+                                key={city}
+                                style={[
+                                    styles.cityButton,
+                                    selectedCity === city && styles.cityButtonSelected,
+                                ]}
+                                onPress={() => setSelectedCity(city)}
+                            >
+                                <Text
+                                    style={[
+                                        styles.cityText,
+                                        selectedCity === city && styles.cityTextSelected,
+                                    ]}
+                                >
+                                    {city}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
                     </View>
                 </ScrollView>
 
@@ -79,12 +101,11 @@ export const CityScreen = ({ navigation }: any) => {
                     <Button
                         title="Continue"
                         onPress={handleNext}
-                        disabled={!city.trim() || isSaving}
+                        disabled={!selectedCity || isSaving}
                         isLoading={isSaving}
                         size="large"
                     />
                 </View>
-            </KeyboardAvoidingView>
             </SafeAreaView>
         </View>
     );
@@ -96,9 +117,6 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
     },
     safeArea: {
-        flex: 1,
-    },
-    keyboardView: {
         flex: 1,
     },
     scrollContent: {
@@ -119,8 +137,30 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: COLORS.textSecondary,
     },
-    form: {
-        flex: 1,
+    citiesGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: SPACING.m,
+    },
+    cityButton: {
+        paddingHorizontal: SPACING.m,
+        paddingVertical: SPACING.s,
+        borderRadius: SIZES.radiusS,
+        backgroundColor: COLORS.surface,
+        borderWidth: 1,
+        borderColor: COLORS.surfaceHighlight,
+    },
+    cityButtonSelected: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    cityText: {
+        fontSize: 14,
+        color: COLORS.textPrimary,
+        fontWeight: '500',
+    },
+    cityTextSelected: {
+        color: '#FFFFFF',
     },
     footer: {
         padding: SPACING.l,
@@ -130,4 +170,3 @@ const styles = StyleSheet.create({
         borderTopColor: COLORS.surfaceHighlight,
     },
 });
-
