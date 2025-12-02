@@ -31,11 +31,14 @@ CREATE TYPE report_reason AS ENUM ('inappropriate_content', 'fake_profile', 'har
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     
-    -- Telegram Integration
-    telegram_id BIGINT UNIQUE NOT NULL,
+    -- Telegram Integration (nullable for Google OAuth users)
+    telegram_id BIGINT UNIQUE,
     telegram_username VARCHAR(255),
     telegram_first_name VARCHAR(255),
     telegram_last_name VARCHAR(255),
+    
+    -- Email (for Google OAuth)
+    email VARCHAR(255) UNIQUE,
     
     -- Profile Information
     name VARCHAR(255) NOT NULL,
@@ -73,6 +76,10 @@ CREATE TABLE users (
     -- Coins & Economy
     coin_balance INTEGER DEFAULT 0 CHECK (coin_balance >= 0),
     gift_balance DECIMAL(10, 2) DEFAULT 0.00 CHECK (gift_balance >= 0),
+    total_spent INTEGER DEFAULT 0,
+    total_earned INTEGER DEFAULT 0,
+    daily_free_reveal_used BOOLEAN DEFAULT FALSE,
+    last_reveal_date DATE,
     
     -- Onboarding Progress
     onboarding_step INTEGER DEFAULT 0 CHECK (onboarding_step >= 0 AND onboarding_step <= 8),
@@ -92,6 +99,25 @@ CREATE INDEX idx_users_age ON users(age);
 CREATE INDEX idx_users_is_active ON users(is_active);
 CREATE INDEX idx_users_location ON users(latitude, longitude);
 CREATE INDEX idx_users_created_at ON users(created_at);
+
+-- ============================================================================
+-- AUTH PROVIDERS TABLE (for multi-auth support)
+-- ============================================================================
+
+CREATE TABLE auth_providers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider VARCHAR(50) NOT NULL,  -- 'telegram', 'google', etc.
+    provider_id VARCHAR(255) NOT NULL,  -- Provider's user ID
+    email VARCHAR(255),
+    linked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    UNIQUE(provider, provider_id)
+);
+
+CREATE INDEX idx_auth_providers_user_id ON auth_providers(user_id);
 
 -- ============================================================================
 -- PHOTOS & VIDEOS TABLE
