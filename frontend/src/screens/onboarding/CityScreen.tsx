@@ -202,6 +202,7 @@ const styles = StyleSheet.create({
     },
     safeArea: {
         flex: 1,
+        paddingTop: 40,
     },
     scrollContent: {
         flexGrow: 1,
