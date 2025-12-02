@@ -73,15 +73,30 @@ export const CityScreen = ({ navigation }: any) => {
                             '';
 
                         if (detectedCity) {
-                            setSelectedCity(detectedCity);
+                            // Location detected successfully - save and skip to next step
+                            try {
+                                await UserService.updateProfile({ city: detectedCity });
+                                await updateStep(2);
+                                navigation.navigate('GenderPreference');
+                            } catch (error) {
+                                // If save fails, show grid as fallback
+                                setSelectedCity(detectedCity);
+                                setShowCityGrid(true);
+                                setIsDetecting(false);
+                            }
+                        } else {
+                            // No city detected - show grid
+                            setShowCityGrid(true);
+                            setIsDetecting(false);
                         }
-                        setShowCityGrid(true);
                     } catch (error) {
+                        // Geocoding failed - show grid
                         setShowCityGrid(true);
+                        setIsDetecting(false);
                     }
-                    setIsDetecting(false);
                 },
                 (error) => {
+                    // Permission denied or location error - show grid
                     setShowCityGrid(true);
                     setIsDetecting(false);
                 },
