@@ -208,7 +208,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 // Only reset if still uploading (not already completed)
                 if (newPhotos[index]?.isUploading) {
                     newPhotos[index] = {
-                        uri: newPhotos[index].uri,
+                        uri: null,
                         fileKey: null,
                         isUploading: false
                     };
@@ -446,7 +446,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 .filter(({ photo }) => photo.fileKey !== null);
 
             if (uploadedPhotos.length === 0) {
-                Alert.alert('No Photos', 'Please wait for photos to finish uploading.');
+                Alert.alert('Upload Incomplete', 'Please wait for photos to finish uploading or try adding them again.');
                 setIsSubmitting(false);
                 return;
             }
@@ -568,7 +568,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                     <Button
                         title={isSubmitting ? "Saving..." : "Next Step"}
                         onPress={handleNext}
-                        disabled={photos.filter(p => p.fileKey !== null).length < 1 || isSubmitting}
+                        disabled={photos.filter(p => p.uri !== null).length < 1 || isSubmitting}
                         isLoading={isSubmitting}
                         size="large"
                     />
