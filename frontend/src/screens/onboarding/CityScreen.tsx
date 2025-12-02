@@ -128,11 +128,11 @@ export const CityScreen = ({ navigation }: any) => {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-                <BackButton />
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
+                    <BackButton />
                     <View style={styles.header}>
                         <Text style={styles.title}>Where are you located?</Text>
                         <Text style={styles.subtitle}>
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: SPACING.xl,
-        marginTop: SPACING.l,
+        marginTop: 10,
     },
     title: {
         fontSize: 28,

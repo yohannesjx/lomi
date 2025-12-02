@@ -71,8 +71,8 @@ export const ReligionScreen = ({ navigation }: any) => {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-                <BackButton />
                 <ScrollView contentContainerStyle={styles.scrollContent}>
+                    <BackButton />
                     <View style={styles.header}>
                         <Text style={styles.title}>What's your religion?</Text>
                         <Text style={styles.subtitle}>This helps us find compatible matches</Text>
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: SPACING.xl,
-        marginTop: SPACING.l,
+        marginTop: 10,
     },
     title: {
         fontSize: 28,

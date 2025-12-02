@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: SPACING.xl,
-        marginTop: SPACING.l,
+        marginTop: 10,
     },
     stepIndicator: {
         color: COLORS.primary,
