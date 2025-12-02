@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, StatusBar, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { BackButton } from '../../components/ui/BackButton';
@@ -142,17 +142,17 @@ export const GenderPreferenceScreen = ({ navigation }: any) => {
                             </View>
                         </View>
                     </View>
-
-                    <View style={styles.footer}>
-                        <Button
-                            title={isSaving ? "Saving..." : "Next Step"}
-                            onPress={handleNext}
-                            disabled={!lookingFor || !relationshipGoal || isSaving}
-                            isLoading={isSaving}
-                            size="large"
-                        />
-                    </View>
                 </ScrollView>
+
+                <View style={styles.footer}>
+                    <Button
+                        title={isSaving ? "Saving..." : "Next Step"}
+                        onPress={handleNext}
+                        disabled={!lookingFor || !relationshipGoal || isSaving}
+                        isLoading={isSaving}
+                        size="large"
+                    />
+                </View>
             </SafeAreaView>
         </View>
     );
@@ -172,6 +172,7 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: SPACING.xl,
+        marginTop: SPACING.l,
     },
     stepIndicator: {
         color: COLORS.primary,
@@ -272,7 +273,10 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
     },
     footer: {
-        marginTop: SPACING.xl,
+        padding: SPACING.l,
+        paddingBottom: Platform.OS === 'ios' ? SPACING.m : SPACING.l,
+        backgroundColor: COLORS.background,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.surfaceHighlight,
     },
 });
-

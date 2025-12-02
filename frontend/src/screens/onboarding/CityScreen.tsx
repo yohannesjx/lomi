@@ -127,7 +127,7 @@ export const CityScreen = ({ navigation }: any) => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-            <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+            <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
                 <BackButton />
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
@@ -210,6 +210,7 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: SPACING.xl,
+        marginTop: SPACING.l,
     },
     title: {
         fontSize: 28,

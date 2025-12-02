@@ -32,7 +32,7 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
                 setPhotoUrl(tgUser.photo_url);
             }
         }
-        
+
         // Only load existing data if user has completed onboarding (returning user)
         // For new users, we want them to fill the form even if DB has placeholder values
         if (user && user.onboarding_completed) {
@@ -58,7 +58,7 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
 
         setIsSaving(true);
         console.log('🔄 Starting profile save...', { name: name.trim(), age: ageNum, gender });
-        
+
         try {
             // Save profile data
             console.log('📤 Calling UserService.updateProfile...');
@@ -77,7 +77,7 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
             // Navigate to next step (city)
             console.log('🧭 Navigating to City screen...');
             console.log('Navigation object:', navigation);
-            
+
             if (navigation && typeof navigation.navigate === 'function') {
                 try {
                     navigation.navigate('City');
@@ -94,9 +94,9 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
                     }
                 }
             } else {
-                console.error('❌ Navigation not available:', { 
-                    hasNavigation: !!navigation, 
-                    hasNavigate: navigation && typeof navigation.navigate === 'function' 
+                console.error('❌ Navigation not available:', {
+                    hasNavigation: !!navigation,
+                    hasNavigate: navigation && typeof navigation.navigate === 'function'
                 });
                 Alert.alert('Navigation Error', 'Navigation is not available. Please refresh the app.');
             }
@@ -108,11 +108,11 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
                 status: error?.response?.status,
                 stack: error?.stack,
             });
-            
-            const errorMessage = error?.response?.data?.error || 
-                                error?.response?.data?.details || 
-                                error?.message || 
-                                'Failed to save profile. Please check your connection and try again.';
+
+            const errorMessage = error?.response?.data?.error ||
+                error?.response?.data?.details ||
+                error?.message ||
+                'Failed to save profile. Please check your connection and try again.';
             Alert.alert('Error', errorMessage);
         } finally {
             setIsSaving(false);
@@ -138,48 +138,49 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-            <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+            <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={{ flex: 1 }}
                 >
-                <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <View style={styles.header}>
-                        <Text style={styles.stepIndicator}>Step 1 of {TOTAL_ONBOARDING_STEPS}</Text>
-                        <Text style={styles.title}>Tell us about yourself</Text>
-                        <Text style={styles.subtitle}>This info will be shown on your profile</Text>
-                    </View>
-
-                    {photoUrl && (
-                        <View style={styles.photoContainer}>
-                            <Image source={{ uri: photoUrl }} style={styles.photo} />
-                            <Text style={styles.photoLabel}>Your Telegram photo</Text>
+                    <ScrollView contentContainerStyle={styles.scrollContent}>
+                        <View style={styles.header}>
+                            <Text style={styles.stepIndicator}>Step 1 of {TOTAL_ONBOARDING_STEPS}</Text>
+                            <Text style={styles.title}>Tell us about yourself</Text>
+                            <Text style={styles.subtitle}>This info will be shown on your profile</Text>
                         </View>
-                    )}
 
-                    <View style={styles.form}>
-                        <Input
-                            label="Full Name"
-                            placeholder="e.g. Abebe Bikila"
-                            value={name}
-                            onChangeText={setName}
-                        />
+                        {photoUrl && (
+                            <View style={styles.photoContainer}>
+                                <Image source={{ uri: photoUrl }} style={styles.photo} />
+                                <Text style={styles.photoLabel}>Your Telegram photo</Text>
+                            </View>
+                        )}
 
-                        <Input
-                            label="Age"
-                            placeholder="e.g. 24"
-                            keyboardType="number-pad"
-                            maxLength={2}
-                            value={age}
-                            onChangeText={setAge}
-                        />
+                        <View style={styles.form}>
+                            <Input
+                                label="Full Name"
+                                placeholder="e.g. Abebe Bikila"
+                                value={name}
+                                onChangeText={setName}
+                            />
 
-                        <Text style={styles.label}>Gender</Text>
-                        <View style={styles.genderContainer}>
-                            <GenderOption type="male" label="Male" icon="👨🏾" />
-                            <GenderOption type="female" label="Female" icon="👩🏾" />
+                            <Input
+                                label="Age"
+                                placeholder="e.g. 24"
+                                keyboardType="number-pad"
+                                maxLength={2}
+                                value={age}
+                                onChangeText={setAge}
+                            />
+
+                            <Text style={styles.label}>Gender</Text>
+                            <View style={styles.genderContainer}>
+                                <GenderOption type="male" label="Male" icon="👨🏾" />
+                                <GenderOption type="female" label="Female" icon="👩🏾" />
+                            </View>
                         </View>
-                    </View>
+                    </ScrollView>
 
                     <View style={styles.footer}>
                         <Button
@@ -190,7 +191,6 @@ export const ProfileSetupScreen = ({ navigation }: any) => {
                             size="large"
                         />
                     </View>
-                </ScrollView>
                 </KeyboardAvoidingView>
             </SafeAreaView>
         </View>
@@ -202,12 +202,16 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.background,
     },
+    safeArea: {
+        flex: 1,
+    },
     scrollContent: {
         flexGrow: 1,
         padding: SPACING.l,
     },
     header: {
         marginBottom: SPACING.xl,
+        marginTop: SPACING.l,
     },
     stepIndicator: {
         color: COLORS.primary,
@@ -263,7 +267,11 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
     },
     footer: {
-        marginTop: SPACING.xl,
+        padding: SPACING.l,
+        paddingBottom: Platform.OS === 'ios' ? SPACING.m : SPACING.l,
+        backgroundColor: COLORS.background,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.surfaceHighlight,
     },
     photoContainer: {
         alignItems: 'center',

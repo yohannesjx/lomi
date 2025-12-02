@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, StatusBar, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
+import { BackButton } from '../../components/ui/BackButton';
 import { COLORS, SPACING, SIZES } from '../../theme/colors';
 import { UserService } from '../../api/services';
 import { useOnboardingStore } from '../../store/onboardingStore';
@@ -69,34 +70,35 @@ export const ReligionScreen = ({ navigation }: any) => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-            <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+            <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+                <BackButton />
                 <ScrollView contentContainerStyle={styles.scrollContent}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>What's your religion?</Text>
-                    <Text style={styles.subtitle}>This helps us find compatible matches</Text>
-                </View>
+                    <View style={styles.header}>
+                        <Text style={styles.title}>What's your religion?</Text>
+                        <Text style={styles.subtitle}>This helps us find compatible matches</Text>
+                    </View>
 
-                <View style={styles.optionsContainer}>
-                    {RELIGIONS.map((rel) => (
-                        <ReligionOption
-                            key={rel.value}
-                            value={rel.value}
-                            label={rel.label}
-                            icon={rel.icon}
-                        />
-                    ))}
-                </View>
+                    <View style={styles.optionsContainer}>
+                        {RELIGIONS.map((rel) => (
+                            <ReligionOption
+                                key={rel.value}
+                                value={rel.value}
+                                label={rel.label}
+                                icon={rel.icon}
+                            />
+                        ))}
+                    </View>
+                </ScrollView>
 
                 <View style={styles.footer}>
                     <Button
                         title="Continue"
                         onPress={handleNext}
                         disabled={!religion || isSaving}
-                        loading={isSaving}
+                        isLoading={isSaving}
                         size="large"
                     />
                 </View>
-            </ScrollView>
             </SafeAreaView>
         </View>
     );
@@ -116,6 +118,7 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: SPACING.xl,
+        marginTop: SPACING.l,
     },
     title: {
         fontSize: 28,
@@ -157,7 +160,11 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
     },
     footer: {
-        marginTop: SPACING.xl,
+        padding: SPACING.l,
+        paddingBottom: Platform.OS === 'ios' ? SPACING.m : SPACING.l,
+        backgroundColor: COLORS.background,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.surfaceHighlight,
     },
 });
 

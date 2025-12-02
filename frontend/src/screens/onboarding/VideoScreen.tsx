@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, StatusBar, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
+import { BackButton } from '../../components/ui/BackButton';
 import { COLORS, SPACING, SIZES } from '../../theme/colors';
 import { useOnboardingStore } from '../../store/onboardingStore';
 import * as ImagePicker from 'expo-image-picker';
@@ -75,32 +76,34 @@ export const VideoScreen = ({ navigation }: any) => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-            <SafeAreaView style={styles.safeArea} edges={['bottom']}>
-                <View style={styles.content}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>Add a video (Optional)</Text>
-                    <Text style={styles.subtitle}>
-                        Show your personality with a short video. This helps you get more matches!
-                    </Text>
-                </View>
+            <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+                <BackButton />
+                <ScrollView contentContainerStyle={styles.scrollContent}>
+                    <View style={styles.header}>
+                        <Text style={styles.title}>Add a video (Optional)</Text>
+                        <Text style={styles.subtitle}>
+                            Show your personality with a short video. This helps you get more matches!
+                        </Text>
+                    </View>
 
-                <View style={styles.videoContainer}>
-                    {hasVideo ? (
-                        <View style={styles.videoPlaceholder}>
-                            <Text style={styles.videoIcon}>✅</Text>
-                            <Text style={styles.videoText}>Video recorded!</Text>
-                        </View>
-                    ) : (
-                        <TouchableOpacity
-                            style={styles.recordButton}
-                            onPress={handleRecordVideo}
-                        >
-                            <Text style={styles.recordIcon}>🎥</Text>
-                            <Text style={styles.recordText}>Record Video</Text>
-                            <Text style={styles.recordSubtext}>Up to 30 seconds</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
+                    <View style={styles.videoContainer}>
+                        {hasVideo ? (
+                            <View style={styles.videoPlaceholder}>
+                                <Text style={styles.videoIcon}>✅</Text>
+                                <Text style={styles.videoText}>Video recorded!</Text>
+                            </View>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.recordButton}
+                                onPress={handleRecordVideo}
+                            >
+                                <Text style={styles.recordIcon}>🎥</Text>
+                                <Text style={styles.recordText}>Record Video</Text>
+                                <Text style={styles.recordSubtext}>Up to 30 seconds</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </ScrollView>
 
                 <View style={styles.footer}>
                     <Button
@@ -111,7 +114,6 @@ export const VideoScreen = ({ navigation }: any) => {
                         variant={hasVideo ? "primary" : "secondary"}
                     />
                 </View>
-            </View>
             </SafeAreaView>
         </View>
     );
@@ -125,12 +127,13 @@ const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
     },
-    content: {
-        flex: 1,
+    scrollContent: {
+        flexGrow: 1,
         padding: SPACING.l,
     },
     header: {
         marginBottom: SPACING.xl,
+        marginTop: SPACING.l,
     },
     title: {
         fontSize: 28,
@@ -147,6 +150,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        minHeight: 300,
     },
     recordButton: {
         backgroundColor: COLORS.surface,
@@ -188,7 +192,11 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
     },
     footer: {
-        marginTop: SPACING.xl,
+        padding: SPACING.l,
+        paddingBottom: Platform.OS === 'ios' ? SPACING.m : SPACING.l,
+        backgroundColor: COLORS.background,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.surfaceHighlight,
     },
 });
 
