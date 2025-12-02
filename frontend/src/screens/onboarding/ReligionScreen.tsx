@@ -72,7 +72,7 @@ export const ReligionScreen = ({ navigation }: any) => {
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
                 <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <BackButton />
+                    <BackButton onPress={() => navigation.navigate('GenderPreference')} />
                     <View style={styles.header}>
                         <Text style={styles.title}>What's your religion?</Text>
                         <Text style={styles.subtitle}>This helps us find compatible matches</Text>

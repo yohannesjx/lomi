@@ -78,7 +78,7 @@ export const VideoScreen = ({ navigation }: any) => {
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
                 <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <BackButton />
+                    <BackButton onPress={() => navigation.navigate('PhotoUpload')} />
                     <View style={styles.header}>
                         <Text style={styles.title}>Add a video (Optional)</Text>
                         <Text style={styles.subtitle}>

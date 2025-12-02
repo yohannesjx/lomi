@@ -81,7 +81,7 @@ export const GenderPreferenceScreen = ({ navigation }: any) => {
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
                 <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <BackButton />
+                    <BackButton onPress={() => navigation.navigate('City')} />
                     <View style={styles.header}>
                         <Text style={styles.stepIndicator}>Step 3 of {TOTAL_ONBOARDING_STEPS}</Text>
                         <Text style={styles.title}>Who are you looking for?</Text>
