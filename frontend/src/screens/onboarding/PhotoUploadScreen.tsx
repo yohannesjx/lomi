@@ -39,7 +39,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             if (Platform.OS === 'web' && typeof document !== 'undefined') {
                 return await compressImageWeb(uri);
             }
-            
+
             // Mobile: Try to use expo-image-manipulator if available
             try {
                 const { manipulateAsync, SaveFormat } = require('expo-image-manipulator');
@@ -53,12 +53,12 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                         format: SaveFormat.JPEG, // Always use JPEG for smaller file size
                     }
                 );
-                
+
                 console.log('✅ Image compressed (mobile):', {
                     original: uri.substring(0, 50),
                     compressed: manipulatedImage.uri.substring(0, 50),
                 });
-                
+
                 return manipulatedImage.uri;
             } catch (mobileError) {
                 console.warn('⚠️ Mobile compression not available, using original:', mobileError);
@@ -75,49 +75,49 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             try {
                 const img = document.createElement('img') as HTMLImageElement;
                 img.crossOrigin = 'anonymous';
-                
+
                 img.onload = () => {
                     try {
                         // Calculate new dimensions (max 1080px width)
                         const maxWidth = 1080;
                         let width = img.width;
                         let height = img.height;
-                        
+
                         if (width > maxWidth) {
                             height = (height * maxWidth) / width;
                             width = maxWidth;
                         }
-                        
+
                         // Create canvas
                         const canvas = document.createElement('canvas');
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
-                        
+
                         if (!ctx) {
                             reject(new Error('Could not get canvas context'));
                             return;
                         }
-                        
+
                         // Draw and compress
                         ctx.drawImage(img, 0, 0, width, height);
                         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                        
+
                         console.log('✅ Image compressed (web):', {
                             original: `${img.width}x${img.height}`,
                             compressed: `${width}x${height}`,
                         });
-                        
+
                         resolve(compressedDataUrl);
                     } catch (error) {
                         reject(error);
                     }
                 };
-                
+
                 img.onerror = () => {
                     reject(new Error('Failed to load image'));
                 };
-                
+
                 img.src = uri;
             } catch (error) {
                 reject(error);
@@ -152,14 +152,14 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             setUploadInProgress(prev => new Set(prev).add(index));
 
             const originalUri = result.assets[0].uri;
-            
+
             // Use functional update to avoid race conditions
             setPhotos(prevPhotos => {
                 const newPhotos = [...prevPhotos];
                 newPhotos[index] = { uri: originalUri, fileKey: null, isUploading: true };
                 return newPhotos;
             });
-            
+
             // Mark this index as uploading
             setUploadInProgress(prev => new Set(prev).add(index));
 
@@ -190,7 +190,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 });
                 return;
             }
-            
+
             // Upload compressed image (don't await here to allow concurrent uploads)
             uploadPhoto(compressedUri, index).catch((error: any) => {
                 // Error is already handled in uploadPhoto, but ensure state is reset
@@ -207,10 +207,10 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 const newPhotos = [...prevPhotos];
                 // Only reset if still uploading (not already completed)
                 if (newPhotos[index]?.isUploading) {
-                    newPhotos[index] = { 
-                        uri: newPhotos[index].uri, 
-                        fileKey: null, 
-                        isUploading: false 
+                    newPhotos[index] = {
+                        uri: newPhotos[index].uri,
+                        fileKey: null,
+                        isUploading: false
                     };
                 }
                 return newPhotos;
@@ -367,7 +367,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 };
                 return newPhotos;
             });
-            
+
             // Remove from upload in progress
             uploadInProgressRef.current.delete(index);
             setUploadInProgress(prev => {
@@ -375,7 +375,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 next.delete(index);
                 return next;
             });
-            
+
             console.log('✅ Photo state updated, ready for media record creation');
         } catch (error: any) {
             // Clear timeout on error
@@ -399,7 +399,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 newPhotos[index] = { uri: null, fileKey: null, isUploading: false };
                 return newPhotos;
             });
-            
+
             // Remove from upload in progress
             uploadInProgressRef.current.delete(index);
             setUploadInProgress(prev => {
@@ -467,7 +467,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             try {
                 uploadCompleteResult = await UserService.uploadComplete(photosBatch);
                 console.log('✅ Upload-complete response:', uploadCompleteResult);
-                
+
                 // Update onboarding step to 5 (photos done)
                 try {
                     await updateStep(5);
@@ -475,7 +475,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 } catch (stepError: any) {
                     console.warn('⚠️ Failed to update onboarding step, but continuing:', stepError);
                 }
-                
+
                 // Navigate to Video screen
                 if (navigation && navigation.navigate) {
                     console.log('🧭 Navigating to Video screen...');
@@ -486,14 +486,14 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                 if (error?.response?.status === 429) {
                     console.warn('⚠️ Rate limit exceeded, but photos are uploaded. Continuing...');
                     const errorMessage = error?.response?.data?.message || 'Maximum 30 photos per 24 hours.';
-                    
+
                     // Update step and navigate anyway (photos are already uploaded to R2)
                     try {
                         await updateStep(5);
                     } catch (stepError: any) {
                         console.warn('⚠️ Failed to update onboarding step:', stepError);
                     }
-                    
+
                     // Navigate to Video screen
                     if (navigation && navigation.navigate) {
                         navigation.navigate('Video');
@@ -548,20 +548,21 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-            <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+            <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
                 <ScrollView contentContainerStyle={styles.scrollContent}>
-                <BackButton />
-                <View style={styles.header}>
-                    <Text style={styles.stepIndicator}>Step 5 of {TOTAL_ONBOARDING_STEPS}</Text>
-                    <Text style={styles.title}>Add your best photos</Text>
-                    <Text style={styles.subtitle}>Upload at least 1 photo to start matching</Text>
-                </View>
+                    <BackButton onPress={() => navigation.navigate('Religion')} />
+                    <View style={styles.header}>
+                        <Text style={styles.stepIndicator}>Step 5 of {TOTAL_ONBOARDING_STEPS}</Text>
+                        <Text style={styles.title}>Add your best photos</Text>
+                        <Text style={styles.subtitle}>Upload at least 1 photo to start matching</Text>
+                    </View>
 
-                <View style={styles.grid}>
-                    {photos.map((photo, index) => (
-                        <PhotoBox key={index} index={index} photo={photo} />
-                    ))}
-                </View>
+                    <View style={styles.grid}>
+                        {photos.map((photo, index) => (
+                            <PhotoBox key={index} index={index} photo={photo} />
+                        ))}
+                    </View>
+                </ScrollView>
 
                 <View style={styles.footer}>
                     <Button
@@ -572,7 +573,6 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
                         size="large"
                     />
                 </View>
-            </ScrollView>
             </SafeAreaView>
         </View>
     );
@@ -585,6 +585,7 @@ const styles = StyleSheet.create({
     },
     safeArea: {
         flex: 1,
+        paddingTop: 80,
     },
     scrollContent: {
         flexGrow: 1,
@@ -592,6 +593,7 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: SPACING.xl,
+        marginTop: 20,
     },
     stepIndicator: {
         color: COLORS.primary,
@@ -656,7 +658,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     footer: {
-        marginTop: SPACING.xl,
+        padding: SPACING.l,
+        paddingBottom: Platform.OS === 'ios' ? SPACING.m : SPACING.l,
+        backgroundColor: COLORS.background,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.surfaceHighlight,
     },
     uploadingOverlay: {
         position: 'absolute',
