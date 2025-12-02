@@ -550,7 +550,7 @@ export const PhotoUploadScreen = ({ navigation }: any) => {
             <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
                 <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <BackButton onPress={() => navigation.navigate('Religion')} />
+                    <BackButton onPress={() => navigation.navigate('Religion')} style={{ marginTop: 20 }} />
                     <View style={styles.header}>
                         <Text style={styles.stepIndicator}>Step 5 of {TOTAL_ONBOARDING_STEPS}</Text>
                         <Text style={styles.title}>Add your best photos</Text>

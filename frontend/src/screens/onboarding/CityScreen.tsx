@@ -132,7 +132,7 @@ export const CityScreen = ({ navigation }: any) => {
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    <BackButton onPress={() => navigation.navigate('ProfileSetup')} />
+                    <BackButton onPress={() => navigation.navigate('ProfileSetup')} style={{ marginTop: 20 }} />
                     <View style={styles.header}>
                         <Text style={styles.title}>Where are you located?</Text>
                         <Text style={styles.subtitle}>
