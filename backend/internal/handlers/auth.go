@@ -338,6 +338,15 @@ func (h *AuthHandler) GoogleLogin(c *fiber.Ctx) error {
 		})
 	}
 
+	// Debug: Decode token to see audience even if config is missing
+	parts := strings.Split(req.IDToken, ".")
+	if len(parts) >= 2 {
+		decoded, decodeErr := base64.RawURLEncoding.DecodeString(parts[1])
+		if decodeErr == nil {
+			log.Printf("🔍 Token payload (pre-check): %s", string(decoded))
+		}
+	}
+
 	if h.cfg.GoogleClientID == "" {
 		log.Printf("❌ GoogleClientID is not configured")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
