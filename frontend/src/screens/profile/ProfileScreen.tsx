@@ -1,34 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import { Button } from '../../components/ui/Button';
 import { COLORS, SPACING, SIZES } from '../../theme/colors';
 import { useAuthStore } from '../../store/authStore';
 import { useOnboardingStore } from '../../store/onboardingStore';
-import { GiftService } from '../../api/services';
+import { GiftService, MatchService } from '../../api/services';
 
 export const ProfileScreen = ({ navigation }: any) => {
     const { user, logout } = useAuthStore();
     const { reset: resetOnboarding } = useOnboardingStore();
     const [coinBalance, setCoinBalance] = useState(0);
     const [giftBalance, setGiftBalance] = useState(0);
+    const [matchCount, setMatchCount] = useState(0);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-    useEffect(() => {
-        loadBalances();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            loadData();
+        }, [])
+    );
 
-    const loadBalances = async () => {
+    const loadData = async () => {
         try {
-            const response = await GiftService.getWalletBalance();
-            setCoinBalance(response.coin_balance || 0);
-            // Gift balance is now calculated from received gifts
-            // For now, show 0 or calculate from total_earned
-            setGiftBalance((response.total_earned || 0) * 0.1); // Convert coins to ETB
+            // Load wallet balance
+            const walletResponse = await GiftService.getWalletBalance();
+            setCoinBalance(walletResponse.coin_balance || 0);
+            setGiftBalance((walletResponse.total_earned || 0) * 0.1); // Convert coins to ETB
+
+            // Load matches count
+            const matchesResponse = await MatchService.getMatches();
+            if (Array.isArray(matchesResponse)) {
+                setMatchCount(matchesResponse.length);
+            } else if (matchesResponse.matches && Array.isArray(matchesResponse.matches)) {
+                setMatchCount(matchesResponse.matches.length);
+            }
         } catch (error: any) {
-            console.error('Load balances error:', error);
+            console.error('Load profile data error:', error);
         }
     };
 
@@ -52,7 +62,7 @@ export const ProfileScreen = ({ navigation }: any) => {
                             resetOnboarding();
                             // Logout from auth store (clears tokens and user data)
                             await logout();
-                            
+
                             // Navigate to Welcome screen using CommonActions for reliable navigation
                             navigation.dispatch(
                                 CommonActions.reset({
@@ -80,6 +90,9 @@ export const ProfileScreen = ({ navigation }: any) => {
         </TouchableOpacity>
     );
 
+    // Get profile photo
+    const profilePhoto = user?.photos?.[0]?.url || user?.profile_photo || 'https://images.unsplash.com/photo-1531384441138-2736e62e0919?q=80&w=1000&auto=format&fit=crop';
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -91,7 +104,7 @@ export const ProfileScreen = ({ navigation }: any) => {
                     <View style={styles.profileHeader}>
                         <View style={styles.avatarContainer}>
                             <Image
-                                source={{ uri: 'https://images.unsplash.com/photo-1531384441138-2736e62e0919?q=80&w=1000&auto=format&fit=crop' }}
+                                source={{ uri: profilePhoto }}
                                 style={styles.avatar}
                             />
                             {user?.is_verified && (
@@ -101,14 +114,14 @@ export const ProfileScreen = ({ navigation }: any) => {
                             )}
                         </View>
                         <Text style={styles.name}>{user?.name || 'User'}</Text>
-                        <Text style={styles.location}>📍 Addis Ababa, Ethiopia</Text>
+                        <Text style={styles.location}>📍 {user?.city || 'Addis Ababa, Ethiopia'}</Text>
                     </View>
                 </LinearGradient>
 
                 {/* Stats */}
                 <View style={styles.statsContainer}>
                     <View style={styles.statItem}>
-                        <Text style={styles.statValue}>12</Text>
+                        <Text style={styles.statValue}>{matchCount}</Text>
                         <Text style={styles.statLabel}>Matches</Text>
                     </View>
                     <View style={styles.statDivider} />
@@ -118,7 +131,7 @@ export const ProfileScreen = ({ navigation }: any) => {
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statValue}>🎁 {(coinBalance * 0.1).toFixed(0)}</Text>
+                        <Text style={styles.statValue}>🎁 {giftBalance.toFixed(0)}</Text>
                         <Text style={styles.statLabel}>ETB Value</Text>
                     </View>
                 </View>
@@ -129,7 +142,7 @@ export const ProfileScreen = ({ navigation }: any) => {
                     <MenuItem
                         icon="✏️"
                         label="Edit Profile"
-                        onPress={() => navigation.navigate('ProfileSetup')}
+                        onPress={() => navigation.navigate('EditProfile')}
                     />
                     {/* Photo moderation removed - manual moderation only */}
                     {/* <MenuItem
@@ -164,22 +177,22 @@ export const ProfileScreen = ({ navigation }: any) => {
                     <MenuItem
                         icon="🔔"
                         label="Notifications"
-                        onPress={() => {}}
+                        onPress={() => { }}
                     />
                     <MenuItem
                         icon="🔒"
                         label="Privacy"
-                        onPress={() => {}}
+                        onPress={() => { }}
                     />
                     <MenuItem
                         icon="👤"
                         label="Discovery Settings"
-                        onPress={() => {}}
+                        onPress={() => { }}
                     />
                     <MenuItem
                         icon="ℹ️"
                         label="Help & Support"
-                        onPress={() => {}}
+                        onPress={() => { }}
                     />
                 </View>
 
@@ -188,17 +201,17 @@ export const ProfileScreen = ({ navigation }: any) => {
                     <MenuItem
                         icon="📄"
                         label="Terms of Service"
-                        onPress={() => {}}
+                        onPress={() => { }}
                     />
                     <MenuItem
                         icon="🔐"
                         label="Privacy Policy"
-                        onPress={() => {}}
+                        onPress={() => { }}
                     />
                     <MenuItem
                         icon="ℹ️"
                         label="About Lomi"
-                        onPress={() => {}}
+                        onPress={() => { }}
                     />
                 </View>
 
@@ -343,4 +356,3 @@ const styles = StyleSheet.create({
         paddingHorizontal: SPACING.l,
     },
 });
-

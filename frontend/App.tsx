@@ -21,6 +21,7 @@ import { LeaderboardScreen } from './src/screens/payout/LeaderboardScreen';
 import { AddVibeScreen } from './src/screens/explore/AddVibeScreen';
 import { ExploreDetailScreen } from './src/screens/explore/ExploreDetailScreen';
 import { LandingPage } from './src/screens/LandingPage';
+import { EditProfileScreen } from './src/screens/profile/EditProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -95,16 +96,16 @@ export default function App() {
                 <AuthGuard>
                     <NavigationContainer
                         theme={{
-                        dark: true,
-                        colors: {
-                            primary: COLORS.primary,
-                            background: COLORS.background,
-                            card: COLORS.surface,
-                            text: COLORS.textPrimary,
-                            border: COLORS.surfaceHighlight,
-                            notification: COLORS.accent,
-                        }
-                    }}>
+                            dark: true,
+                            colors: {
+                                primary: COLORS.primary,
+                                background: COLORS.background,
+                                card: COLORS.surface,
+                                text: COLORS.textPrimary,
+                                border: COLORS.surfaceHighlight,
+                                notification: COLORS.accent,
+                            }
+                        }}>
                         <StatusBar style="light" />
                         <Stack.Navigator
                             initialRouteName="Landing"
@@ -158,6 +159,7 @@ export default function App() {
                             <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
                             <Stack.Screen name="Main" component={MainTabNavigator} />
                             <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
+                            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
                             <Stack.Screen name="BuyCoins" component={BuyCoinsScreen} />
                             <Stack.Screen name="GiftShop" component={GiftShopScreen} />
                             <Stack.Screen name="Cashout" component={CashoutScreen} />
