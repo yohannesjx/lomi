@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: lomi
-      POSTGRES_PASSWORD: lomi123
+      POSTGRES_PASSWORD: d5YhNXB5zXhT7bkbbQ7
       POSTGRES_DB: lomi_db
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
@@ -105,7 +105,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: lomi
-      DB_PASSWORD: lomi123
+      DB_PASSWORD: d5YhNXB5zXhT7bkbbQ7
       DB_NAME: lomi_db
       DB_SSL_MODE: disable
       DB_MAX_OPEN_CONNS: 25
@@ -137,6 +137,9 @@ services:
       # Telegram
       TELEGRAM_BOT_TOKEN: 8453633918:AAE6UxkHrplAxyKXXBLt56bQufhZpH-rVEM
       TELEGRAM_BOT_USERNAME: lomi_social_bot
+      
+      # Google OAuth
+      GOOGLE_CLIENT_ID: lomi-70611
       
       # Payment Gateways (placeholders)
       TELEBIRR_API_KEY: ""
