@@ -52,6 +52,7 @@ func main() {
 
 	// 7. Routes
 	routes.SetupRoutes(app)
+	routes.SetupStreamingRoutes(app) // TikTok-style streaming endpoints
 
 	// 8. Start Server
 	log.Printf("🚀 Server starting on port %s", cfg.AppPort)
