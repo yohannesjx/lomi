@@ -28,9 +28,9 @@ func GetChats(c *fiber.Ctx) error {
 
 	type ChatResponse struct {
 		MatchID     uuid.UUID       `json:"match_id"`
-		User        models.User      `json:"user"`
-		LastMessage *models.Message  `json:"last_message,omitempty"`
-		UnreadCount int64            `json:"unread_count"`
+		User        models.User     `json:"user"`
+		LastMessage *models.Message `json:"last_message,omitempty"`
+		UnreadCount int64           `json:"unread_count"`
 	}
 
 	chats := make([]ChatResponse, 0)
@@ -162,13 +162,14 @@ func SendMessage(c *fiber.Ctx) error {
 
 	// Create message
 	message := models.Message{
-		MatchID:     matchID,
+		MatchID:     &matchID,
 		SenderID:    senderID,
-		ReceiverID:  receiverID,
+		ReceiverID:  &receiverID,
 		MessageType: models.MessageType(req.MessageType),
 		Content:     req.Content,
 		MediaURL:    req.MediaURL,
 		IsRead:      false,
+		IsLive:      false,
 	}
 
 	if req.GiftID != "" {
@@ -225,4 +226,3 @@ func MarkMessagesAsRead(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"message": "Messages marked as read"})
 }
-

@@ -14,11 +14,11 @@ import (
 
 // Gift definitions matching the spec
 var GiftCatalog = []struct {
-	Type        string
-	Name        string
-	CoinPrice   int
+	Type         string
+	Name         string
+	CoinPrice    int
 	AnimationURL string
-	SoundURL    string
+	SoundURL     string
 }{
 	{"rose", "Rose", 290, "/animations/rose.json", "/sounds/rose.mp3"},
 	{"heart", "Heart", 499, "/animations/heart.json", "/sounds/heart.mp3"},
@@ -50,21 +50,21 @@ var CoinPacks = []struct {
 // GetGiftShop returns all gifts with prices and animation URLs
 func GetGiftShop(c *fiber.Ctx) error {
 	gifts := make([]fiber.Map, 0, len(GiftCatalog))
-	
+
 	for _, gift := range GiftCatalog {
 		// Calculate ETB value (1 LC = 0.1 ETB)
 		etbValue := float64(gift.CoinPrice) * 0.1
-		
+
 		gifts = append(gifts, fiber.Map{
-			"type":         gift.Type,
-			"name":         gift.Name,
-			"coin_price":   gift.CoinPrice,
-			"etb_value":    etbValue,
+			"type":          gift.Type,
+			"name":          gift.Name,
+			"coin_price":    gift.CoinPrice,
+			"etb_value":     etbValue,
 			"animation_url": gift.AnimationURL,
-			"sound_url":    gift.SoundURL,
+			"sound_url":     gift.SoundURL,
 		})
 	}
-	
+
 	return c.JSON(fiber.Map{
 		"gifts": gifts,
 		"count": len(gifts),
@@ -87,7 +87,7 @@ func GetWalletBalance(c *fiber.Ctx) error {
 		"coin_balance": dbUser.CoinBalance,
 		"total_spent":  dbUser.TotalSpent,
 		"total_earned": dbUser.TotalEarned,
-		"etb_value":   float64(dbUser.CoinBalance) * 0.1, // 1 LC = 0.1 ETB
+		"etb_value":    float64(dbUser.CoinBalance) * 0.1, // 1 LC = 0.1 ETB
 	})
 }
 
@@ -128,7 +128,7 @@ func BuyCoins(c *fiber.Ctx) error {
 		TransactionType: models.TransactionTypePurchase,
 		CoinAmount:      selectedPack.Coins,
 		BirrAmount:      selectedPack.ETBPrice,
-		PaymentMethod:    models.PaymentMethodTelebirr, // Default to Telebirr
+		PaymentMethod:   models.PaymentMethodTelebirr, // Default to Telebirr
 		PaymentStatus:   models.PaymentStatusPending,
 		BalanceAfter:    0, // Will be updated after payment
 	}
@@ -139,8 +139,8 @@ func BuyCoins(c *fiber.Ctx) error {
 
 	// TODO: Generate Telebirr payment URL
 	// For now, return payment URL structure
-	paymentURL := "https://telebirr.com/pay?amount=" + 
-		fmt.Sprintf("%.2f", selectedPack.ETBPrice) + 
+	paymentURL := "https://telebirr.com/pay?amount=" +
+		fmt.Sprintf("%.2f", selectedPack.ETBPrice) +
 		"&reference=" + coinTx.ID.String()
 
 	return c.JSON(fiber.Map{
@@ -150,7 +150,7 @@ func BuyCoins(c *fiber.Ctx) error {
 		"etb_price":      selectedPack.ETBPrice,
 		"coins":          selectedPack.Coins,
 		"payment_url":    paymentURL,
-		"webhook_url":   "/api/v1/wallet/buy/webhook", // Webhook endpoint
+		"webhook_url":    "/api/v1/wallet/buy/webhook", // Webhook endpoint
 	})
 }
 
@@ -177,11 +177,11 @@ func SendGiftLuxury(c *fiber.Ctx) error {
 
 	// Find gift in catalog
 	var selectedGift *struct {
-		Type        string
-		Name        string
-		CoinPrice   int
+		Type         string
+		Name         string
+		CoinPrice    int
 		AnimationURL string
-		SoundURL    string
+		SoundURL     string
 	}
 	for _, gift := range GiftCatalog {
 		if gift.Type == req.GiftType {
@@ -202,8 +202,8 @@ func SendGiftLuxury(c *fiber.Ctx) error {
 	// Check if sender has enough coins
 	if sender.CoinBalance < selectedGift.CoinPrice {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":          "Insufficient coins",
-			"required":       selectedGift.CoinPrice,
+			"error":           "Insufficient coins",
+			"required":        selectedGift.CoinPrice,
 			"current_balance": sender.CoinBalance,
 		})
 	}
@@ -243,7 +243,7 @@ func SendGiftLuxury(c *fiber.Ctx) error {
 		ReceiverID: receiverID,
 		GiftID:     uuid.Nil, // We don't have gift IDs in DB, using type instead
 		CoinAmount: selectedGift.CoinPrice,
-		BirrValue:   etbValue,
+		BirrValue:  etbValue,
 		GiftType:   selectedGift.Type,
 	}
 
@@ -255,9 +255,9 @@ func SendGiftLuxury(c *fiber.Ctx) error {
 	// Create coin transaction for sender
 	coinTxSender := models.CoinTransaction{
 		UserID:            senderID,
-		TransactionType:    models.TransactionTypeGiftSent,
-		CoinAmount:         -selectedGift.CoinPrice,
-		BalanceAfter:       sender.CoinBalance,
+		TransactionType:   models.TransactionTypeGiftSent,
+		CoinAmount:        -selectedGift.CoinPrice,
+		BalanceAfter:      sender.CoinBalance,
 		GiftTransactionID: &giftTransaction.ID,
 	}
 	if err := tx.Create(&coinTxSender).Error; err != nil {
@@ -268,9 +268,9 @@ func SendGiftLuxury(c *fiber.Ctx) error {
 	// Create coin transaction for receiver
 	coinTxReceiver := models.CoinTransaction{
 		UserID:            receiverID,
-		TransactionType:    models.TransactionTypeGiftReceived,
-		CoinAmount:         selectedGift.CoinPrice,
-		BalanceAfter:       receiver.CoinBalance,
+		TransactionType:   models.TransactionTypeGiftReceived,
+		CoinAmount:        selectedGift.CoinPrice,
+		BalanceAfter:      receiver.CoinBalance,
 		GiftTransactionID: &giftTransaction.ID,
 	}
 	if err := tx.Create(&coinTxReceiver).Error; err != nil {
@@ -282,10 +282,11 @@ func SendGiftLuxury(c *fiber.Ctx) error {
 	if req.MatchID != "" {
 		matchID, _ := uuid.Parse(req.MatchID)
 		message := models.Message{
-			MatchID:     matchID,
+			MatchID:     &matchID,
 			SenderID:    senderID,
-			ReceiverID:  receiverID,
+			ReceiverID:  &receiverID,
 			MessageType: models.MessageTypeGift,
+			IsLive:      false,
 		}
 		if err := tx.Create(&message).Error; err == nil {
 			giftTransaction.MessageID = &message.ID
@@ -306,7 +307,7 @@ func SendGiftLuxury(c *fiber.Ctx) error {
 	if selectedGift.CoinPrice >= 29999 {
 		go func() {
 			// TODO: Implement broadcast notification
-			log.Printf("🎉 BIG GIFT ALERT: %s sent a %s (%d LC) to %s in %s!", 
+			log.Printf("🎉 BIG GIFT ALERT: %s sent a %s (%d LC) to %s in %s!",
 				sender.Name, selectedGift.Name, selectedGift.CoinPrice, receiver.Name, receiver.City)
 		}()
 	}
@@ -314,11 +315,11 @@ func SendGiftLuxury(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"message": "Gift sent successfully",
 		"gift": fiber.Map{
-			"type":         selectedGift.Type,
-			"name":         selectedGift.Name,
-			"coin_price":   selectedGift.CoinPrice,
+			"type":          selectedGift.Type,
+			"name":          selectedGift.Name,
+			"coin_price":    selectedGift.CoinPrice,
 			"animation_url": selectedGift.AnimationURL,
-			"sound_url":    selectedGift.SoundURL,
+			"sound_url":     selectedGift.SoundURL,
 		},
 		"sender_balance":   sender.CoinBalance,
 		"receiver_balance": receiver.CoinBalance,
@@ -350,12 +351,12 @@ func GetGiftsReceived(c *fiber.Ctx) error {
 		database.DB.First(&sender, "id = ?", gift.SenderID)
 
 		giftsList = append(giftsList, fiber.Map{
-			"id":           gift.ID,
-			"sender_name":  sender.Name,
-			"gift_type":    gift.GiftType,
-			"coins":        gift.CoinAmount,
-			"etb_value":    gift.BirrValue,
-			"sent_at":      gift.CreatedAt,
+			"id":          gift.ID,
+			"sender_name": sender.Name,
+			"gift_type":   gift.GiftType,
+			"coins":       gift.CoinAmount,
+			"etb_value":   gift.BirrValue,
+			"sent_at":     gift.CreatedAt,
 		})
 
 		totalCoins += gift.CoinAmount
@@ -378,8 +379,8 @@ func RequestCashout(c *fiber.Ctx) error {
 	userID, _ := uuid.Parse(userIDStr)
 
 	var req struct {
-		Coins         int    `json:"coins" validate:"required,min=50000"`
-		PaymentMethod string `json:"payment_method" validate:"required"`
+		Coins          int    `json:"coins" validate:"required,min=50000"`
+		PaymentMethod  string `json:"payment_method" validate:"required"`
 		PaymentAccount string `json:"payment_account" validate:"required"`
 	}
 	if err := c.BodyParser(&req); err != nil {
@@ -401,8 +402,8 @@ func RequestCashout(c *fiber.Ctx) error {
 	// Check if user has enough coins
 	if dbUser.CoinBalance < req.Coins {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":          "Insufficient coins",
-			"required":       req.Coins,
+			"error":           "Insufficient coins",
+			"required":        req.Coins,
 			"current_balance": dbUser.CoinBalance,
 		})
 	}
@@ -427,7 +428,7 @@ func RequestCashout(c *fiber.Ctx) error {
 	// Create payout request
 	payout := models.Payout{
 		UserID:                userID,
-		Coins:                  req.Coins,
+		Coins:                 req.Coins,
 		GiftBalanceAmount:     etbAmount,
 		PlatformFeePercentage: platformFeePercentage,
 		PlatformFeeAmount:     platformFeeAmount,
@@ -451,16 +452,15 @@ func RequestCashout(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"message": "Cashout request created",
 		"payout": fiber.Map{
-			"id":                payout.ID,
-			"coins":             payout.Coins,
-			"etb_amount":       etbAmount,
-			"platform_fee":      platformFeeAmount,
-			"net_amount":        netAmount,
-			"payment_method":    payout.PaymentMethod,
-			"payment_account":   payout.PaymentAccount,
-			"status":            payout.Status,
-			"created_at":        payout.CreatedAt,
+			"id":              payout.ID,
+			"coins":           payout.Coins,
+			"etb_amount":      etbAmount,
+			"platform_fee":    platformFeeAmount,
+			"net_amount":      netAmount,
+			"payment_method":  payout.PaymentMethod,
+			"payment_account": payout.PaymentAccount,
+			"status":          payout.Status,
+			"created_at":      payout.CreatedAt,
 		},
 	})
 }
-

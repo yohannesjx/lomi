@@ -227,7 +227,10 @@ func (ns *NotificationService) NotifyNewMessage(message models.Message, sender m
 		"sender_id":  sender.ID.String(),
 	}
 
-	return ns.SendNotification(message.ReceiverID, NotificationTypeNewMessage, title, body, data)
+	if message.ReceiverID != nil {
+		return ns.SendNotification(*message.ReceiverID, NotificationTypeNewMessage, title, body, data)
+	}
+	return nil
 }
 
 // NotifyGiftReceived sends notification when a gift is received

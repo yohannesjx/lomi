@@ -106,10 +106,10 @@ func SendGift(c *fiber.Ctx) error {
 
 	// Create coin transaction for sender
 	coinTx := models.CoinTransaction{
-		UserID:          senderID,
-		TransactionType: models.TransactionTypeGiftSent,
-		CoinAmount:      -gift.CoinPrice,
-		BalanceAfter:    sender.CoinBalance,
+		UserID:            senderID,
+		TransactionType:   models.TransactionTypeGiftSent,
+		CoinAmount:        -gift.CoinPrice,
+		BalanceAfter:      sender.CoinBalance,
 		GiftTransactionID: &giftTransaction.ID,
 	}
 	if err := tx.Create(&coinTx).Error; err != nil {
@@ -119,10 +119,10 @@ func SendGift(c *fiber.Ctx) error {
 
 	// Create coin transaction for receiver (gift received)
 	coinTxReceiver := models.CoinTransaction{
-		UserID:          receiverID,
-		TransactionType: models.TransactionTypeGiftReceived,
-		CoinAmount:      0, // No coins, but gift value added to balance
-		BalanceAfter:    receiver.CoinBalance,
+		UserID:            receiverID,
+		TransactionType:   models.TransactionTypeGiftReceived,
+		CoinAmount:        0, // No coins, but gift value added to balance
+		BalanceAfter:      receiver.CoinBalance,
 		GiftTransactionID: &giftTransaction.ID,
 	}
 	if err := tx.Create(&coinTxReceiver).Error; err != nil {
@@ -134,11 +134,12 @@ func SendGift(c *fiber.Ctx) error {
 	if req.MatchID != "" {
 		matchID, _ := uuid.Parse(req.MatchID)
 		message := models.Message{
-			MatchID:     matchID,
+			MatchID:     &matchID,
 			SenderID:    senderID,
-			ReceiverID:  receiverID,
+			ReceiverID:  &receiverID,
 			MessageType: models.MessageTypeGift,
 			GiftID:      &giftID,
+			IsLive:      false,
 		}
 		if err := tx.Create(&message).Error; err == nil {
 			giftTransaction.MessageID = &message.ID
@@ -156,9 +157,8 @@ func SendGift(c *fiber.Ctx) error {
 	}()
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "Gift sent successfully",
+		"message":          "Gift sent successfully",
 		"gift_transaction": giftTransaction,
-		"gift": gift,
+		"gift":             gift,
 	})
 }
-

@@ -209,12 +209,13 @@ func (c *Client) readPump() {
 			// Save message to database and broadcast
 			matchID, _ := uuid.Parse(wsMsg.MatchID)
 			msg := models.Message{
-				MatchID:     matchID,
+				MatchID:     &matchID,
 				SenderID:    c.UserID,
 				MessageType: models.MessageType(wsMsg.MessageType),
 				Content:     "",
 				MediaURL:    wsMsg.MediaURL,
 				IsRead:      false,
+				IsLive:      false,
 			}
 
 			// Handle content based on message type
@@ -234,9 +235,11 @@ func (c *Client) readPump() {
 			var match models.Match
 			if err := database.DB.First(&match, "id = ?", matchID).Error; err == nil {
 				if match.User1ID == c.UserID {
-					msg.ReceiverID = match.User2ID
+					receiverID := match.User2ID
+					msg.ReceiverID = &receiverID
 				} else {
-					msg.ReceiverID = match.User1ID
+					receiverID := match.User1ID
+					msg.ReceiverID = &receiverID
 				}
 				if err := database.DB.Create(&msg).Error; err == nil {
 					// Update message ID in WS message
