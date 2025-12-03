@@ -41,7 +41,34 @@ func tikTokError(code int, message string) TikTokResponse {
 	return TikTokResponse{Code: code, Msg: message}
 }
 
-// ==================== 1. POST /api/registerUser ====================
+// ==================== 1. POST /api/checkUsername ====================
+// Check if username is available
+func (h *StreamingHandler) CheckUsername(c *fiber.Ctx) error {
+	var req struct {
+		Username string `json:"username"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.JSON(tikTokError(400, "Invalid request body"))
+	}
+
+	if req.Username == "" {
+		return c.JSON(tikTokError(400, "Username is required"))
+	}
+
+	var count int64
+	if err := database.DB.Model(&models.User{}).Where("LOWER(username) = LOWER(?)", req.Username).Count(&count).Error; err != nil {
+		return c.JSON(tikTokError(500, "Database error"))
+	}
+
+	if count > 0 {
+		return c.JSON(tikTokError(201, "Username is already taken"))
+	}
+
+	return c.JSON(tikTokSuccess("Username is available"))
+}
+
+// ==================== 2. POST /api/registerUser ====================
 // Social login endpoint - creates or returns existing user
 func (h *StreamingHandler) RegisterUser(c *fiber.Ctx) error {
 	var req struct {

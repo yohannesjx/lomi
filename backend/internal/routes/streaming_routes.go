@@ -19,7 +19,10 @@ func SetupStreamingRoutes(app *fiber.App) {
 	// ==================== PUBLIC ENDPOINTS ====================
 	// These endpoints don't require authentication (for initial login)
 
-	// 1. POST /api/registerUser - Social login/signup
+	// 1. POST /api/checkUsername - Check username availability
+	api.Post("/checkUsername", streamingHandler.CheckUsername)
+
+	// 2. POST /api/registerUser - Social login/signup
 	api.Post("/registerUser", streamingHandler.RegisterUser)
 
 	// ==================== PROTECTED ENDPOINTS ====================

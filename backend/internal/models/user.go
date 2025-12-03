@@ -80,6 +80,7 @@ type User struct {
 	Email string `gorm:"size:255"`
 
 	// Profile Information
+	Username         string           `gorm:"size:30;uniqueIndex"`
 	Name             string           `gorm:"size:255;not null"`
 	Age              int              `gorm:"not null"`
 	Gender           Gender           `gorm:"type:gender_type;not null"`
@@ -113,7 +114,7 @@ type User struct {
 	CoinBalance int     `gorm:"default:0;check:coin_balance >= 0"`
 	GiftBalance float64 `gorm:"type:decimal(10,2);default:0.00;check:gift_balance >= 0"`
 	TotalSpent  int     `gorm:"default:0;check:total_spent >= 0"`  // Total coins spent
-	TotalEarned int     `gorm:"default:0;check:total_earned >= 0"`  // Total coins earned from gifts
+	TotalEarned int     `gorm:"default:0;check:total_earned >= 0"` // Total coins earned from gifts
 
 	// Daily Free Reveal (for "Who Likes You" feature)
 	DailyFreeRevealUsed bool      `gorm:"default:false"`
