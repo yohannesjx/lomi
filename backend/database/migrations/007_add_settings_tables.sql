@@ -66,6 +66,15 @@ CREATE TABLE IF NOT EXISTS push_notifications (
 CREATE INDEX IF NOT EXISTS idx_privacy_settings_user_id ON privacy_settings(user_id);
 CREATE INDEX IF NOT EXISTS idx_push_notifications_user_id ON push_notifications(user_id);
 
+-- Function to update updated_at timestamp (ensure it exists)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- Triggers for updated_at
 DROP TRIGGER IF EXISTS update_privacy_settings_updated_at ON privacy_settings;
 CREATE TRIGGER update_privacy_settings_updated_at BEFORE UPDATE ON privacy_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
