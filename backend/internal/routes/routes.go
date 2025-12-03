@@ -50,6 +50,12 @@ func SetupRoutes(app *fiber.App) {
 	protected.Get("/onboarding/status", handlers.GetOnboardingStatus)
 	protected.Patch("/onboarding/progress", handlers.UpdateOnboardingProgress)
 
+	// Settings
+	protected.Get("/users/privacy", handlers.GetPrivacySettings)
+	protected.Post("/users/privacy", handlers.UpdatePrivacySettings)
+	protected.Get("/users/push-notifications", handlers.GetPushNotifications)
+	protected.Post("/users/push-notifications", handlers.UpdatePushNotifications)
+
 	// Media
 	protected.Post("/users/media", handlers.UploadMedia)
 	protected.Post("/users/media/upload-complete", handlers.UploadComplete) // Batch upload completion
@@ -78,7 +84,7 @@ func SetupRoutes(app *fiber.App) {
 	protected.Get("/gifts/shop", handlers.GetGiftShop)
 	protected.Post("/gifts/send", handlers.SendGiftLuxury)
 	protected.Get("/gifts/received", handlers.GetGiftsReceived)
-	
+
 	// Legacy gifts endpoint (keep for backward compatibility)
 	protected.Get("/gifts", handlers.GetGifts)
 
@@ -86,7 +92,7 @@ func SetupRoutes(app *fiber.App) {
 	protected.Get("/wallet/balance", handlers.GetWalletBalance)
 	protected.Post("/wallet/buy", middleware.PurchaseRateLimit(), handlers.BuyCoins)
 	protected.Post("/wallet/buy/webhook", handlers.CoinPurchaseWebhook) // Telebirr webhook
-	
+
 	// Legacy coins endpoints (keep for backward compatibility)
 	protected.Get("/coins/balance", handlers.GetCoinBalance)
 	protected.Post("/coins/purchase", middleware.PurchaseRateLimit(), handlers.PurchaseCoins)
@@ -95,7 +101,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// Cashout (Luxury System)
 	protected.Post("/cashout/request", handlers.RequestCashout)
-	
+
 	// Legacy payouts endpoints (keep for backward compatibility)
 	protected.Get("/payouts/balance", handlers.GetPayoutBalance)
 	protected.Post("/payouts/request", handlers.RequestPayout)

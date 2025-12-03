@@ -107,6 +107,43 @@ type User struct {
 	LastSeenAt       time.Time `gorm:"type:timestamptz"`
 	ShowOnlineStatus bool      `gorm:"default:true"`
 
+	// New Profile Fields (from migration 007)
+	Phone               string    `gorm:"size:20"`
+	Password            string    `gorm:"size:255"`
+	ProfilePic          string    `gorm:"size:255"`
+	ProfilePicSmall     string    `gorm:"size:255"`
+	Role                string    `gorm:"size:20;default:'user'"`
+	DeviceToken         string    `gorm:"size:255"`
+	AuthToken           string    `gorm:"size:255"`
+	Social              string    `gorm:"size:20"`
+	Version             string    `gorm:"size:20"`
+	Device              string    `gorm:"size:50"`
+	IP                  string    `gorm:"size:50"`
+	CountryID           int       `gorm:""`
+	Wallet              float64   `gorm:"type:decimal(10,2);default:0.00"`
+	Paypal              string    `gorm:"size:255"`
+	Private             int       `gorm:"default:0"`
+	ProfileView         int       `gorm:"default:0"`
+	ResetWalletDatetime time.Time `gorm:"type:timestamptz"`
+	ReferralCode        string    `gorm:"size:50"`
+	Business            int       `gorm:"default:0"`
+	Parent              int       `gorm:"default:0"`
+	ComissionEarned     float64   `gorm:"type:decimal(10,2);default:0.00"`
+	FollowersCount      int       `gorm:"default:0"`
+	FollowingCount      int       `gorm:"default:0"`
+	LikesCount          int       `gorm:"default:0"`
+	VideoCount          int       `gorm:"default:0"`
+	Block               int       `gorm:"default:0"`
+	SoldItemsCount      int       `gorm:"default:0"`
+	TaggedProductsCount int       `gorm:"default:0"`
+	Button              string    `gorm:"size:20;default:'follow'"`
+	Notification        int       `gorm:"default:1"`
+	UnreadNotification  int       `gorm:"default:0"`
+
+	// Relationships
+	PrivacySetting   *PrivacySetting   `gorm:"foreignKey:UserID"`
+	PushNotification *PushNotification `gorm:"foreignKey:UserID"`
+
 	// Preferences
 	Preferences JSONMap `gorm:"type:jsonb;default:'{}'"`
 

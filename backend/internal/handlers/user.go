@@ -26,7 +26,8 @@ func GetMe(c *fiber.Ctx) error {
 	userID := claims["user_id"].(string)
 
 	var dbUser models.User
-	if err := database.DB.First(&dbUser, "id = ?", userID).Error; err != nil {
+	// Preload related settings
+	if err := database.DB.Preload("PrivacySetting").Preload("PushNotification").First(&dbUser, "id = ?", userID).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 	}
 
