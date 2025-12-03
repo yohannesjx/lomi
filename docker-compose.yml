@@ -196,6 +196,21 @@ services:
     networks:
       - lomi_network
 
+  # MediaMTX - RTMP/HLS Server
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: lomi_mediamtx
+    restart: unless-stopped
+    ports:
+      - "1935:1935"  # RTMP
+      - "8888:8888"  # HLS
+      - "8554:8554"  # RTSP
+      - "8889:8889"  # WebRTC
+    environment:
+      MTX_PROTOCOLS: tcp
+    networks:
+      - lomi_network
+
 networks:
   lomi_network:
     driver: bridge
