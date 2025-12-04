@@ -3,8 +3,10 @@ package handlers
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"lomi-backend/config"
@@ -117,9 +119,41 @@ func (h *StreamingHandler) RegisterUser(c *fiber.Ctx) error {
 				fullName = "User"
 			}
 
+			// Generate username from email or social ID
+			username := ""
+			if req.Email != "" {
+				username = strings.Split(req.Email, "@")[0]
+			} else {
+				username = "user_" + req.SocialID[:8]
+			}
+			username = strings.ReplaceAll(username, ".", "_")
+			username = strings.ReplaceAll(username, "+", "_")
+
+			// Make username unique
+			var existingUser models.User
+			baseUsername := username
+			counter := 1
+			for {
+				if err := tx.Where("username = ?", username).First(&existingUser).Error; err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						break
+					}
+					return err
+				}
+				username = fmt.Sprintf("%s%d", baseUsername, counter)
+				counter++
+			}
+
+			// Set email to nil if empty to avoid unique constraint violation
+			var emailPtr *string
+			if req.Email != "" {
+				emailPtr = &req.Email
+			}
+
 			user = models.User{
+				Username:           username,
 				Name:               fullName,
-				Email:              req.Email,
+				Email:              req.Email, // Can be empty
 				Age:                18,
 				Gender:             models.GenderOther,
 				City:               "Not Set",
@@ -152,7 +186,7 @@ func (h *StreamingHandler) RegisterUser(c *fiber.Ctx) error {
 			}
 
 			isNewUser = true
-			log.Printf("✅ Created new user via %s: ID=%s, Email=%s", req.Social, user.ID, req.Email)
+			log.Printf("✅ Created new user via %s: ID=%s, Username=%s, Email=%s", req.Social, user.ID, username, req.Email)
 		} else {
 			return result.Error
 		}
