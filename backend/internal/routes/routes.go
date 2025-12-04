@@ -45,6 +45,13 @@ func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler) {
 
 	api.Post("/auth/refresh", handlers.RefreshToken) // TODO: Implement
 
+	// ============================================
+	// PUBLIC WALLET ENDPOINTS (No Auth Required)
+	// ============================================
+
+	// Coin Packages (Public - anyone can view packages)
+	api.Get("/wallet/coin-packages", walletHandler.GetCoinPackages)
+
 	// Protected routes (require authentication)
 	protected := api.Group("", middleware.AuthMiddleware)
 
@@ -124,8 +131,7 @@ func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler) {
 	// Wallet Balance & Info
 	protected.Get("/wallet/v2/balance", walletHandler.GetWalletBalance)
 
-	// Coin Packages & Purchase
-	api.Get("/wallet/coin-packages", walletHandler.GetCoinPackages) // Public endpoint
+	// Coin Purchase
 	protected.Post("/wallet/purchase-coins", walletHandler.PurchaseCoins)
 
 	// Withdrawals
