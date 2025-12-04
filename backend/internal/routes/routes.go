@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/websocket/v2"
 )
 
-func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileHandler *handlers.ProfileHandler) {
+func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileHandler *handlers.ProfileHandler, videoHandler *handlers.VideoHandler) {
 	api := app.Group("/api/v1")
 
 	// Health Check
@@ -96,6 +96,16 @@ func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileH
 	// Referral System
 	protected.Get("/getReferralCode", profileHandler.GetReferralCode)
 	protected.Post("/applyReferralCode", profileHandler.ApplyReferralCode)
+
+	// ============================================
+	// SOCIAL CONTENT (Phase 1.2)
+	// ============================================
+
+	// User Videos
+	protected.Post("/showVideosAgainstUserID", videoHandler.ShowVideosAgainstUserID)
+	protected.Post("/showUserLikedVideos", videoHandler.ShowUserLikedVideos)
+	protected.Post("/showUserRepostedVideos", videoHandler.ShowUserRepostedVideos)
+	protected.Post("/showFavouriteVideos", videoHandler.ShowFavouriteVideos)
 
 	// Settings (keeping existing handlers for now)
 
