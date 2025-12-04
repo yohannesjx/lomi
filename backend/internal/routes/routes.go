@@ -25,6 +25,7 @@ func SetupRoutes(app *fiber.App) {
 	api.Post("/showVideoDetailAd", legacyHandler.ShowVideoDetailAd)
 	api.Post("/showUnReadNotifications", legacyHandler.ShowUnReadNotifications)
 	api.Post("/checkPhoneNo", legacyHandler.CheckPhoneNo)
+	api.Post("/showUserDetail", legacyHandler.ShowUserDetail)
 
 	// Test endpoints for debugging
 	api.Get("/test", handlers.TestEndpoint)

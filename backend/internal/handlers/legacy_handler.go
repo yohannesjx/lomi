@@ -66,3 +66,12 @@ func (h *LegacyHandler) CheckPhoneNo(c *fiber.Ctx) error {
 		"msg":  "success",
 	})
 }
+
+// ShowUserDetail handles /api/showUserDetail
+// Returns 201 to indicate user not found, triggering signup flow
+func (h *LegacyHandler) ShowUserDetail(c *fiber.Ctx) error {
+	return c.JSON(fiber.Map{
+		"code": 201,
+		"msg":  "User not found. Please complete registration.",
+	})
+}
