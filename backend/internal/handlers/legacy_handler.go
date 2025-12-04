@@ -55,10 +55,7 @@ func (h *LegacyHandler) ShowVideoDetailAd(c *fiber.Ctx) error {
 func (h *LegacyHandler) ShowUnReadNotifications(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"code": 200,
-		"msg":  "success",
-		"msg_array": fiber.Map{
-			"count": "0",
-		},
+		"msg":  "0", // Return count as string in msg field
 	})
 }
 
