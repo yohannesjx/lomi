@@ -117,6 +117,37 @@ func SetupRoutes(app *fiber.App) {
 	protected.Post("/payouts/request", handlers.RequestPayout)
 	protected.Get("/payouts/history", handlers.GetPayoutHistory)
 
+	// ============================================
+	// NEW WALLET MANAGEMENT SYSTEM (Production-Grade)
+	// ============================================
+	walletHandler := handlers.NewWalletHandler( /* inject wallet service */ )
+
+	// Wallet Balance & Info
+	protected.Get("/wallet/v2/balance", walletHandler.GetWalletBalance)
+
+	// Coin Packages & Purchase
+	api.Get("/wallet/coin-packages", walletHandler.GetCoinPackages) // Public endpoint
+	protected.Post("/wallet/purchase-coins", walletHandler.PurchaseCoins)
+
+	// Withdrawals
+	protected.Post("/wallet/withdraw", walletHandler.RequestWithdrawal)
+	protected.Get("/wallet/withdrawal-history", walletHandler.GetWithdrawalHistory)
+
+	// Transactions
+	protected.Get("/wallet/transactions", walletHandler.GetTransactionHistory)
+
+	// Payout Methods
+	protected.Post("/wallet/payout-methods", walletHandler.AddPayoutMethod)
+	protected.Get("/wallet/payout-methods", walletHandler.GetPayoutMethods)
+	protected.Delete("/wallet/payout-methods/:id", walletHandler.DeletePayoutMethod)
+
+	// Legacy Android Endpoints (Backward Compatibility)
+	protected.Post("/showPayout", walletHandler.ShowPayout)
+	protected.Post("/addPayout", walletHandler.AddPayout)
+	protected.Post("/purchaseCoin", walletHandler.PurchaseCoin)
+	protected.Post("/withdrawRequest", walletHandler.WithdrawRequest)
+	protected.Post("/showWithdrawalHistory", walletHandler.ShowWithdrawalHistory)
+
 	// Verification
 	protected.Post("/verification/submit", handlers.SubmitVerification)
 	protected.Get("/verification/status", handlers.GetVerificationStatus)
