@@ -7,13 +7,17 @@ set -e
 
 echo "🏦 Setting up Wallet Management System..."
 
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # 1. Install dependencies
 echo "📦 Installing dependencies..."
-cd /Users/gashawarega/Documents/Projects/lomi_mini/backend
+cd "$SCRIPT_DIR"
 go get github.com/jmoiron/sqlx
 
 # 2. Run database migration
 echo "🗄️  Running database migration..."
+echo "Enter your PostgreSQL password when prompted..."
 psql -U postgres -d lomi_db -f internal/database/migrations/004_wallet_system.sql
 
 # 3. Tidy dependencies
