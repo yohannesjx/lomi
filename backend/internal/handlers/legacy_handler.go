@@ -68,23 +68,10 @@ func (h *LegacyHandler) CheckPhoneNo(c *fiber.Ctx) error {
 }
 
 // ShowUserDetail handles /api/showUserDetail
-// Returns 200 with mock user to simulate successful login
+// Returns 201 to indicate new user needs to complete registration/onboarding
 func (h *LegacyHandler) ShowUserDetail(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"code": 200,
-		"msg":  "success",
-		"msg_array": fiber.Map{
-			"User": fiber.Map{
-				"id":          "1",
-				"first_name":  "Test",
-				"last_name":   "User",
-				"username":    "testuser",
-				"email":       "test@example.com",
-				"phone":       "+251938965929",
-				"profile_pic": "",
-				"role":        "user",
-				"auth_token":  "dummy_token",
-			},
-		},
+		"code": 201,
+		"msg":  "New user. Please complete registration.",
 	})
 }
