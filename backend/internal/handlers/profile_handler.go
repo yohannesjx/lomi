@@ -1,0 +1,474 @@
+package handlers
+
+import (
+	"strconv"
+
+	"lomi-backend/internal/models"
+	"lomi-backend/internal/services"
+
+	"github.com/gofiber/fiber/v2"
+)
+
+type ProfileHandler struct {
+	profileService *services.ProfileService
+}
+
+func NewProfileHandler(profileService *services.ProfileService) *ProfileHandler {
+	return &ProfileHandler{
+		profileService: profileService,
+	}
+}
+
+// ============================================
+// PROFILE MANAGEMENT
+// ============================================
+
+// EditProfile handles POST /api/v1/editProfile
+func (h *ProfileHandler) EditProfile(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	var req models.EditProfileRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	err := h.profileService.UpdateProfile(c.Context(), userID, &req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Profile updated successfully",
+	})
+}
+
+// ============================================
+// FOLLOW MANAGEMENT
+// ============================================
+
+// FollowUser handles POST /api/v1/followUser
+func (h *ProfileHandler) FollowUser(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	var req models.FollowUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	if req.UserID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "user_id is required",
+		})
+	}
+
+	if req.Action != "follow" && req.Action != "unfollow" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "action must be 'follow' or 'unfollow'",
+		})
+	}
+
+	err := h.profileService.FollowUser(c.Context(), userID, &req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+
+	message := "User followed successfully"
+	if req.Action == "unfollow" {
+		message = "User unfollowed successfully"
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  message,
+	})
+}
+
+// ShowFollowers handles POST /api/v1/showFollowers
+func (h *ProfileHandler) ShowFollowers(c *fiber.Ctx) error {
+	viewerID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	// Get user_id from request body
+	var reqBody struct {
+		UserID string `json:"user_id"`
+	}
+	if err := c.BodyParser(&reqBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	userID := reqBody.UserID
+	if userID == "" {
+		userID = viewerID // If no user_id provided, show own followers
+	}
+
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size", "20"))
+
+	followers, err := h.profileService.GetFollowers(c.Context(), userID, viewerID, page, pageSize)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": 500,
+			"msg":  "Failed to get followers",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "success",
+		"data": followers,
+	})
+}
+
+// ShowFollowing handles POST /api/v1/showFollowing
+func (h *ProfileHandler) ShowFollowing(c *fiber.Ctx) error {
+	viewerID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	// Get user_id from request body
+	var reqBody struct {
+		UserID string `json:"user_id"`
+	}
+	if err := c.BodyParser(&reqBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	userID := reqBody.UserID
+	if userID == "" {
+		userID = viewerID // If no user_id provided, show own following
+	}
+
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size", "20"))
+
+	following, err := h.profileService.GetFollowing(c.Context(), userID, viewerID, page, pageSize)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": 500,
+			"msg":  "Failed to get following",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "success",
+		"data": following,
+	})
+}
+
+// ============================================
+// BLOCK MANAGEMENT
+// ============================================
+
+// BlockUser handles POST /api/v1/blockUser
+func (h *ProfileHandler) BlockUser(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	var req models.BlockUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	if req.UserID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "user_id is required",
+		})
+	}
+
+	if req.Action != "block" && req.Action != "unblock" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "action must be 'block' or 'unblock'",
+		})
+	}
+
+	err := h.profileService.BlockUser(c.Context(), userID, &req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+
+	message := "User blocked successfully"
+	if req.Action == "unblock" {
+		message = "User unblocked successfully"
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  message,
+	})
+}
+
+// ShowBlockedUsers handles POST /api/v1/showBlockedUsers
+func (h *ProfileHandler) ShowBlockedUsers(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size", "20"))
+
+	blocked, err := h.profileService.GetBlockedUsers(c.Context(), userID, page, pageSize)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": 500,
+			"msg":  "Failed to get blocked users",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "success",
+		"data": blocked,
+	})
+}
+
+// ============================================
+// PRIVACY SETTINGS
+// ============================================
+
+// AddPrivacySetting handles POST /api/v1/addPrivacySetting
+func (h *ProfileHandler) AddPrivacySetting(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	var req models.UpdatePrivacySettingsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	settings, err := h.profileService.UpdatePrivacySettings(c.Context(), userID, &req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Privacy settings updated successfully",
+		"data": settings,
+	})
+}
+
+// GetPrivacySettings handles GET /api/v1/users/privacy (modern endpoint)
+func (h *ProfileHandler) GetPrivacySettings(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	settings, err := h.profileService.GetPrivacySettings(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": 500,
+			"msg":  "Failed to get privacy settings",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "success",
+		"data": settings,
+	})
+}
+
+// ============================================
+// NOTIFICATION SETTINGS
+// ============================================
+
+// UpdatePushNotificationSettings handles POST /api/v1/updatePushNotificationSettings
+func (h *ProfileHandler) UpdatePushNotificationSettings(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	var req models.UpdateNotificationSettingsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	settings, err := h.profileService.UpdateNotificationSettings(c.Context(), userID, &req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Notification settings updated successfully",
+		"data": settings,
+	})
+}
+
+// GetPushNotifications handles GET /api/v1/users/push-notifications (modern endpoint)
+func (h *ProfileHandler) GetPushNotifications(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	settings, err := h.profileService.GetNotificationSettings(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": 500,
+			"msg":  "Failed to get notification settings",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "success",
+		"data": settings,
+	})
+}
+
+// ============================================
+// REFERRAL SYSTEM
+// ============================================
+
+// GetReferralCode handles GET /api/v1/getReferralCode
+func (h *ProfileHandler) GetReferralCode(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	stats, err := h.profileService.GetReferralCode(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": 500,
+			"msg":  "Failed to get referral code",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "success",
+		"data": stats,
+	})
+}
+
+// ApplyReferralCode handles POST /api/v1/applyReferralCode
+func (h *ProfileHandler) ApplyReferralCode(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"code": 401,
+			"msg":  "Unauthorized",
+		})
+	}
+
+	var req models.ApplyReferralCodeRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	if req.ReferralCode == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "referral_code is required",
+		})
+	}
+
+	err := h.profileService.ApplyReferralCode(c.Context(), userID, &req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Referral code applied successfully. You and your referrer have been rewarded!",
+	})
+}

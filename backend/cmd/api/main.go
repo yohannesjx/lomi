@@ -44,7 +44,12 @@ func main() {
 	walletService := services.NewWalletService(walletRepo)
 	walletHandler := handlers.NewWalletHandler(walletService)
 
-	// 8. Initialize Fiber App
+	// 8. Initialize Profile Dependencies
+	profileRepo := repositories.NewProfileRepository(database.SqlxDB)
+	profileService := services.NewProfileService(profileRepo)
+	profileHandler := handlers.NewProfileHandler(profileService)
+
+	// 9. Initialize Fiber App
 	app := fiber.New(fiber.Config{
 		AppName:      cfg.AppName,
 		ServerHeader: "Lomi-Social",
@@ -61,7 +66,7 @@ func main() {
 	}))
 
 	// 10. Routes
-	routes.SetupRoutes(app, walletHandler)
+	routes.SetupRoutes(app, walletHandler, profileHandler)
 	routes.SetupStreamingRoutes(app) // TikTok-style streaming endpoints
 
 	// 11. Start Server

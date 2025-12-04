@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/websocket/v2"
 )
 
-func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler) {
+func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileHandler *handlers.ProfileHandler) {
 	api := app.Group("/api/v1")
 
 	// Health Check
@@ -67,11 +67,37 @@ func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler) {
 	protected.Get("/onboarding/status", handlers.GetOnboardingStatus)
 	protected.Patch("/onboarding/progress", handlers.UpdateOnboardingProgress)
 
-	// Settings
-	protected.Get("/users/privacy", handlers.GetPrivacySettings)
-	protected.Post("/users/privacy", handlers.UpdatePrivacySettings)
-	protected.Get("/users/push-notifications", handlers.GetPushNotifications)
-	protected.Post("/users/push-notifications", handlers.UpdatePushNotifications)
+	// ============================================
+	// PROFILE MANAGEMENT (Phase 1)
+	// ============================================
+
+	// Profile Updates
+	protected.Post("/editProfile", profileHandler.EditProfile)
+
+	// Follow System
+	protected.Post("/followUser", profileHandler.FollowUser)
+	protected.Post("/showFollowers", profileHandler.ShowFollowers)
+	protected.Post("/showFollowing", profileHandler.ShowFollowing)
+
+	// Block System
+	protected.Post("/blockUser", profileHandler.BlockUser)
+	protected.Post("/showBlockedUsers", profileHandler.ShowBlockedUsers)
+
+	// Privacy Settings (Legacy + Modern)
+	protected.Post("/addPrivacySetting", profileHandler.AddPrivacySetting)
+	protected.Get("/users/privacy", profileHandler.GetPrivacySettings)
+	protected.Post("/users/privacy", profileHandler.AddPrivacySetting)
+
+	// Notification Settings (Legacy + Modern)
+	protected.Post("/updatePushNotificationSettings", profileHandler.UpdatePushNotificationSettings)
+	protected.Get("/users/push-notifications", profileHandler.GetPushNotifications)
+	protected.Post("/users/push-notifications", profileHandler.UpdatePushNotificationSettings)
+
+	// Referral System
+	protected.Get("/getReferralCode", profileHandler.GetReferralCode)
+	protected.Post("/applyReferralCode", profileHandler.ApplyReferralCode)
+
+	// Settings (keeping existing handlers for now)
 
 	// Media
 	protected.Post("/users/media", handlers.UploadMedia)
