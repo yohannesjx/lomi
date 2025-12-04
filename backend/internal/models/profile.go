@@ -102,15 +102,15 @@ type UserProfileResponse struct {
 
 // FollowerResponse represents a follower/following user
 type FollowerResponse struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Age          int       `json:"age"`
-	City         string    `json:"city"`
-	Bio          *string   `json:"bio,omitempty"`
-	IsVerified   bool      `json:"is_verified"`
-	IsFollowing  bool      `json:"is_following"`
-	IsFollowedBy bool      `json:"is_followed_by"`
-	FollowedAt   time.Time `json:"followed_at"`
+	ID           string    `json:"id" db:"id"`
+	Name         string    `json:"name" db:"name"`
+	Age          int       `json:"age" db:"age"`
+	City         string    `json:"city" db:"city"`
+	Bio          *string   `json:"bio,omitempty" db:"bio"`
+	IsVerified   bool      `json:"is_verified" db:"is_verified"`
+	IsFollowing  bool      `json:"is_following" db:"is_following"`
+	IsFollowedBy bool      `json:"is_followed_by" db:"is_followed_by"`
+	FollowedAt   time.Time `json:"followed_at" db:"followed_at"`
 }
 
 // UpdatePrivacySettingsRequest represents privacy settings update
@@ -141,9 +141,9 @@ type ApplyReferralCodeRequest struct {
 
 // ReferralCodeResponse represents referral code info
 type ReferralCodeResponse struct {
-	ReferralCode   string `json:"referral_code"`
-	TotalReferrals int64  `json:"total_referrals"`
-	TotalRewards   int64  `json:"total_rewards"`
+	ReferralCode   string `json:"referral_code" db:"referral_code"`
+	TotalReferrals int64  `json:"total_referrals" db:"total_referrals"`
+	TotalRewards   int64  `json:"total_rewards" db:"total_rewards"`
 }
 
 // BlockUserRequest represents a block/unblock request
@@ -154,9 +154,9 @@ type BlockUserRequest struct {
 
 // BlockedUserResponse represents a blocked user
 type BlockedUserResponse struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Age       int       `json:"age"`
-	City      string    `json:"city"`
-	BlockedAt time.Time `json:"blocked_at"`
+	ID        string    `json:"id" db:"id"`
+	Name      string    `json:"name" db:"name"`
+	Age       int       `json:"age" db:"age"`
+	City      string    `json:"city" db:"city"`
+	BlockedAt time.Time `json:"blocked_at" db:"blocked_at"`
 }
