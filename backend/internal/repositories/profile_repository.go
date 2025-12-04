@@ -35,6 +35,11 @@ func (r *ProfileRepository) UpdateProfile(ctx context.Context, userID string, re
 		args = append(args, *req.Name)
 		argCount++
 	}
+	if req.Username != nil {
+		updates = append(updates, fmt.Sprintf("username = $%d", argCount))
+		args = append(args, *req.Username)
+		argCount++
+	}
 	if req.Bio != nil {
 		updates = append(updates, fmt.Sprintf("bio = $%d", argCount))
 		args = append(args, *req.Bio)
@@ -640,4 +645,38 @@ func (r *ProfileRepository) GetAppSettings(ctx context.Context, userID string) (
 	query := `SELECT app_language, app_theme, cache_cleared_at FROM users WHERE id = $1::uuid`
 	err := r.db.GetContext(ctx, &settings, query, userID)
 	return &settings, err
+}
+
+// GetUserDetail gets full user details for the legacy app
+func (r *ProfileRepository) GetUserDetail(ctx context.Context, userID string) (*models.UserDetailResponse, error) {
+	var user models.UserDetailResponse
+	query := `
+		SELECT 
+			id, name as first_name, '' as last_name, username, email, phone, bio, '' as website, gender, 
+			profile_pic, '' as profile_gif, CAST(profile_view AS VARCHAR), CAST(wallet AS INTEGER), 
+			0.0 as total_balance_usd, coin_balance as total_coins_all_time,
+			followers_count, following_count, likes_count, video_count,
+			CASE WHEN is_verified THEN 1 ELSE 0 END as verified,
+			referral_code
+		FROM users 
+		WHERE id = $1::uuid
+	`
+	err := r.db.GetContext(ctx, &user, query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch privacy settings
+	privacy, err := r.GetPrivacySettings(ctx, userID)
+	if err == nil {
+		user.PrivacySetting = privacy
+	}
+
+	// Fetch notification settings
+	push, err := r.GetNotificationSettings(ctx, userID)
+	if err == nil {
+		user.PushSetting = push
+	}
+
+	return &user, nil
 }

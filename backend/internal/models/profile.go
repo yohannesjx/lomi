@@ -59,6 +59,9 @@ type Referral struct {
 // EditProfileRequest represents a profile update request
 type EditProfileRequest struct {
 	Name             *string  `json:"name,omitempty"`
+	FirstName        *string  `json:"first_name,omitempty"`
+	LastName         *string  `json:"last_name,omitempty"`
+	Username         *string  `json:"username,omitempty"`
 	Bio              *string  `json:"bio,omitempty"`
 	Website          *string  `json:"website,omitempty"`
 	City             *string  `json:"city,omitempty"`
@@ -173,4 +176,31 @@ type ReportUserRequest struct {
 	Reason      string   `json:"reason" validate:"required,oneof=inappropriate_content fake_profile harassment scam other"`
 	Description string   `json:"description" validate:"required,min=10"`
 	Screenshots []string `json:"screenshots,omitempty"`
+}
+
+// UserDetailResponse represents the full user details for the legacy app
+type UserDetailResponse struct {
+	ID              string                `json:"id" db:"id"`
+	FirstName       string                `json:"first_name" db:"first_name"`
+	LastName        string                `json:"last_name" db:"last_name"`
+	Username        string                `json:"username" db:"username"`
+	Email           string                `json:"email" db:"email"`
+	Phone           string                `json:"phone" db:"phone"`
+	Bio             string                `json:"bio" db:"bio"`
+	Website         string                `json:"website" db:"website"`
+	Gender          string                `json:"gender" db:"gender"`
+	ProfilePic      string                `json:"profile_pic" db:"profile_pic"`
+	ProfileGif      string                `json:"profile_gif" db:"profile_gif"`
+	ProfileView     string                `json:"profile_view" db:"profile_view"`
+	Wallet          int                   `json:"wallet" db:"wallet"`
+	TotalBalanceUSD float64               `json:"total_balance_usd" db:"total_balance_usd"`
+	TotalCoins      int                   `json:"total_coins_all_time" db:"total_coins_all_time"`
+	FollowersCount  int                   `json:"followers_count" db:"followers_count"`
+	FollowingCount  int                   `json:"following_count" db:"following_count"`
+	LikesCount      int                   `json:"likes_count" db:"likes_count"`
+	VideoCount      int                   `json:"video_count" db:"video_count"`
+	Verified        int                   `json:"verified" db:"verified"`
+	ReferralCode    string                `json:"referral_code" db:"referral_code"`
+	PrivacySetting  *PrivacySettings      `json:"privacy_setting_model"`
+	PushSetting     *NotificationSettings `json:"push_notification_model"`
 }

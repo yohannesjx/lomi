@@ -71,7 +71,7 @@ func main() {
 	}))
 
 	// 11. Routes
-	routes.SetupRoutes(app, walletHandler, profileHandler, videoHandler)
+	routes.SetupRoutes(app, walletHandler, profileHandler, videoHandler, profileService)
 	routes.SetupStreamingRoutes(app) // TikTok-style streaming endpoints
 
 	// 11. Start Server

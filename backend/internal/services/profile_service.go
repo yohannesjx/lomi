@@ -24,13 +24,31 @@ func NewProfileService(profileRepo *repositories.ProfileRepository) *ProfileServ
 
 // UpdateProfile updates user profile
 func (s *ProfileService) UpdateProfile(ctx context.Context, userID string, req *models.EditProfileRequest) error {
+	// Handle Name logic for legacy app compatibility
+	if req.Name == nil && (req.FirstName != nil || req.LastName != nil) {
+		var newName string
+		if req.FirstName != nil {
+			newName = *req.FirstName
+		}
+		if req.LastName != nil {
+			if newName != "" {
+				newName += " " + *req.LastName
+			} else {
+				newName = *req.LastName
+			}
+		}
+
+		if newName != "" {
+			req.Name = &newName
+		}
+	}
 	// Validate age if provided
 	if req.Age != nil && (*req.Age < 18 || *req.Age > 100) {
 		return fmt.Errorf("age must be between 18 and 100")
 	}
 
 	// Validate gender if provided
-	if req.Gender != nil {
+	if req.Gender != nil && *req.Gender != "" {
 		validGenders := map[string]bool{"male": true, "female": true, "other": true}
 		if !validGenders[*req.Gender] {
 			return fmt.Errorf("invalid gender")
@@ -313,4 +331,9 @@ func (s *ProfileService) ClearCache(ctx context.Context, userID string) error {
 // GetAppSettings gets user's app settings
 func (s *ProfileService) GetAppSettings(ctx context.Context, userID string) (*models.AppSettings, error) {
 	return s.profileRepo.GetAppSettings(ctx, userID)
+}
+
+// GetUserDetail gets full user details for the legacy app
+func (s *ProfileService) GetUserDetail(ctx context.Context, userID string) (*models.UserDetailResponse, error) {
+	return s.profileRepo.GetUserDetail(ctx, userID)
 }

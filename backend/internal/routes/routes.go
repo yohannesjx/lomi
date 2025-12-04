@@ -4,12 +4,13 @@ import (
 	"lomi-backend/config"
 	"lomi-backend/internal/handlers"
 	"lomi-backend/internal/middleware"
+	"lomi-backend/internal/services"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 )
 
-func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileHandler *handlers.ProfileHandler, videoHandler *handlers.VideoHandler) {
+func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileHandler *handlers.ProfileHandler, videoHandler *handlers.VideoHandler, profileService *services.ProfileService) {
 	api := app.Group("/api/v1")
 
 	// Health Check
@@ -18,7 +19,7 @@ func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileH
 	})
 
 	// Legacy endpoints (now under v1)
-	legacyHandler := handlers.NewLegacyHandler()
+	legacyHandler := handlers.NewLegacyHandler(profileService)
 	api.Post("/showRooms", legacyHandler.ShowRooms)
 	api.Post("/showFriendsStories", legacyHandler.ShowFriendsStories)
 	api.Post("/showSettings", legacyHandler.ShowSettings)
