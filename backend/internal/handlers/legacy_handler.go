@@ -15,7 +15,7 @@ func NewLegacyHandler() *LegacyHandler {
 func (h *LegacyHandler) ShowRooms(c *fiber.Ctx) error {
 	// Return empty list of rooms for now
 	return c.JSON(fiber.Map{
-		"code":      "200",
+		"code":      200,
 		"msg":       "success",
 		"msg_array": []interface{}{},
 	})
@@ -24,7 +24,7 @@ func (h *LegacyHandler) ShowRooms(c *fiber.Ctx) error {
 // ShowFriendsStories handles /api/showFriendsStories
 func (h *LegacyHandler) ShowFriendsStories(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"code":      "200",
+		"code":      200,
 		"msg":       "success",
 		"msg_array": []interface{}{},
 	})
@@ -33,7 +33,7 @@ func (h *LegacyHandler) ShowFriendsStories(c *fiber.Ctx) error {
 // ShowSettings handles /api/showSettings
 func (h *LegacyHandler) ShowSettings(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"code": "200",
+		"code": 200,
 		"msg":  "success",
 		"msg_array": fiber.Map{
 			"privacy":           "1",
@@ -45,7 +45,7 @@ func (h *LegacyHandler) ShowSettings(c *fiber.Ctx) error {
 // ShowVideoDetailAd handles /api/showVideoDetailAd
 func (h *LegacyHandler) ShowVideoDetailAd(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"code":      "200",
+		"code":      200,
 		"msg":       "success",
 		"msg_array": []interface{}{},
 	})
@@ -54,7 +54,7 @@ func (h *LegacyHandler) ShowVideoDetailAd(c *fiber.Ctx) error {
 // ShowUnReadNotifications handles /api/showUnReadNotifications
 func (h *LegacyHandler) ShowUnReadNotifications(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"code": "200",
+		"code": 200,
 		"msg":  "success",
 		"msg_array": fiber.Map{
 			"count": "0",
@@ -65,7 +65,7 @@ func (h *LegacyHandler) ShowUnReadNotifications(c *fiber.Ctx) error {
 // CheckPhoneNo handles /api/checkPhoneNo
 func (h *LegacyHandler) CheckPhoneNo(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"code": "200",
+		"code": 200,
 		"msg":  "success",
 	})
 }
