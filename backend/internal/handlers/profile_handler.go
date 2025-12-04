@@ -7,6 +7,7 @@ import (
 	"lomi-backend/internal/services"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type ProfileHandler struct {
@@ -25,13 +26,9 @@ func NewProfileHandler(profileService *services.ProfileService) *ProfileHandler 
 
 // EditProfile handles POST /api/v1/editProfile
 func (h *ProfileHandler) EditProfile(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
 
 	var req models.EditProfileRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -61,13 +58,9 @@ func (h *ProfileHandler) EditProfile(c *fiber.Ctx) error {
 
 // FollowUser handles POST /api/v1/followUser
 func (h *ProfileHandler) FollowUser(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
 
 	var req models.FollowUserRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -112,13 +105,9 @@ func (h *ProfileHandler) FollowUser(c *fiber.Ctx) error {
 
 // ShowFollowers handles POST /api/v1/showFollowers
 func (h *ProfileHandler) ShowFollowers(c *fiber.Ctx) error {
-	viewerID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	viewerID := claims["user_id"].(string)
 
 	// Get user_id from request body
 	var reqBody struct {
@@ -156,13 +145,9 @@ func (h *ProfileHandler) ShowFollowers(c *fiber.Ctx) error {
 
 // ShowFollowing handles POST /api/v1/showFollowing
 func (h *ProfileHandler) ShowFollowing(c *fiber.Ctx) error {
-	viewerID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	viewerID := claims["user_id"].(string)
 
 	// Get user_id from request body
 	var reqBody struct {
@@ -204,13 +189,9 @@ func (h *ProfileHandler) ShowFollowing(c *fiber.Ctx) error {
 
 // BlockUser handles POST /api/v1/blockUser
 func (h *ProfileHandler) BlockUser(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
 
 	var req models.BlockUserRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -255,13 +236,9 @@ func (h *ProfileHandler) BlockUser(c *fiber.Ctx) error {
 
 // ShowBlockedUsers handles POST /api/v1/showBlockedUsers
 func (h *ProfileHandler) ShowBlockedUsers(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	pageSize, _ := strconv.Atoi(c.Query("page_size", "20"))
@@ -287,13 +264,9 @@ func (h *ProfileHandler) ShowBlockedUsers(c *fiber.Ctx) error {
 
 // AddPrivacySetting handles POST /api/v1/addPrivacySetting
 func (h *ProfileHandler) AddPrivacySetting(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
 
 	var req models.UpdatePrivacySettingsRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -320,13 +293,9 @@ func (h *ProfileHandler) AddPrivacySetting(c *fiber.Ctx) error {
 
 // GetPrivacySettings handles GET /api/v1/users/privacy (modern endpoint)
 func (h *ProfileHandler) GetPrivacySettings(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
 
 	settings, err := h.profileService.GetPrivacySettings(c.Context(), userID)
 	if err != nil {
@@ -349,13 +318,9 @@ func (h *ProfileHandler) GetPrivacySettings(c *fiber.Ctx) error {
 
 // UpdatePushNotificationSettings handles POST /api/v1/updatePushNotificationSettings
 func (h *ProfileHandler) UpdatePushNotificationSettings(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
 
 	var req models.UpdateNotificationSettingsRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -382,13 +347,9 @@ func (h *ProfileHandler) UpdatePushNotificationSettings(c *fiber.Ctx) error {
 
 // GetPushNotifications handles GET /api/v1/users/push-notifications (modern endpoint)
 func (h *ProfileHandler) GetPushNotifications(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
 
 	settings, err := h.profileService.GetNotificationSettings(c.Context(), userID)
 	if err != nil {
@@ -411,13 +372,9 @@ func (h *ProfileHandler) GetPushNotifications(c *fiber.Ctx) error {
 
 // GetReferralCode handles GET /api/v1/getReferralCode
 func (h *ProfileHandler) GetReferralCode(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
 
 	stats, err := h.profileService.GetReferralCode(c.Context(), userID)
 	if err != nil {
@@ -436,13 +393,9 @@ func (h *ProfileHandler) GetReferralCode(c *fiber.Ctx) error {
 
 // ApplyReferralCode handles POST /api/v1/applyReferralCode
 func (h *ProfileHandler) ApplyReferralCode(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(string)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"code": 401,
-			"msg":  "Unauthorized",
-		})
-	}
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
 
 	var req models.ApplyReferralCodeRequest
 	if err := c.BodyParser(&req); err != nil {
