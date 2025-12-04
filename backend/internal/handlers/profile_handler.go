@@ -579,3 +579,97 @@ func (h *ProfileHandler) ShareProfile(c *fiber.Ctx) error {
 		"msg":  "Profile share tracked successfully",
 	})
 }
+
+// ============================================
+// APP SETTINGS
+// ============================================
+
+// ChangeAppLanguage handles POST /api/v1/changeAppLanguage
+func (h *ProfileHandler) ChangeAppLanguage(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
+	
+	var req models.ChangeLanguageRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+	
+	if req.Language == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "language is required",
+		})
+	}
+	
+	err := h.profileService.ChangeAppLanguage(c.Context(), userID, req.Language)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+	
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Language changed successfully",
+	})
+}
+
+// ChangeAppTheme handles POST /api/v1/changeAppTheme
+func (h *ProfileHandler) ChangeAppTheme(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
+	
+	var req models.ChangeThemeRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+	
+	if req.Theme == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "theme is required",
+		})
+	}
+	
+	err := h.profileService.ChangeAppTheme(c.Context(), userID, req.Theme)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+	
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Theme changed successfully",
+	})
+}
+
+// ClearCache handles POST /api/v1/clearCache
+func (h *ProfileHandler) ClearCache(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
+	
+	err := h.profileService.ClearCache(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": 500,
+			"msg":  "Failed to clear cache",
+		})
+	}
+	
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Cache cleared successfully",
+	})
+}

@@ -280,3 +280,37 @@ func (s *ProfileService) ShareProfile(ctx context.Context, sharedBy string, req 
 
 	return s.profileRepo.TrackProfileShare(ctx, req.UserID, sharedBy, req.Platform)
 }
+
+// ============================================
+// APP SETTINGS
+// ============================================
+
+// ChangeAppLanguage changes user's app language
+func (s *ProfileService) ChangeAppLanguage(ctx context.Context, userID, language string) error {
+	validLanguages := map[string]bool{
+		"en": true, "am": true, "om": true, "ti": true, "so": true, "ar": true,
+	}
+	if !validLanguages[language] {
+		return fmt.Errorf("invalid language")
+	}
+	return s.profileRepo.ChangeAppLanguage(ctx, userID, language)
+}
+
+// ChangeAppTheme changes user's app theme
+func (s *ProfileService) ChangeAppTheme(ctx context.Context, userID, theme string) error {
+	validThemes := map[string]bool{"light": true, "dark": true, "auto": true}
+	if !validThemes[theme] {
+		return fmt.Errorf("invalid theme")
+	}
+	return s.profileRepo.ChangeAppTheme(ctx, userID, theme)
+}
+
+// ClearCache clears user's cache
+func (s *ProfileService) ClearCache(ctx context.Context, userID string) error {
+	return s.profileRepo.ClearCache(ctx, userID)
+}
+
+// GetAppSettings gets user's app settings
+func (s *ProfileService) GetAppSettings(ctx context.Context, userID string) (*models.AppSettings, error) {
+	return s.profileRepo.GetAppSettings(ctx, userID)
+}

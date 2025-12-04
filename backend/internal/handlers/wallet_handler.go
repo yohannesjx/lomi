@@ -7,6 +7,7 @@ import (
 	"lomi-backend/internal/services"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // WalletHandler handles wallet-related HTTP requests
@@ -399,4 +400,43 @@ func (h *WalletHandler) WithdrawRequest(c *fiber.Ctx) error {
 // ShowWithdrawalHistory handles POST /api/v1/showWithdrawalHistory (legacy)
 func (h *WalletHandler) ShowWithdrawalHistory(c *fiber.Ctx) error {
 	return h.GetWithdrawalHistory(c)
+}
+
+// ShowOrderHistory handles POST /api/v1/showOrderHistory
+func (h *WalletHandler) ShowOrderHistory(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
+
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	// Get transaction history (purchases)
+	history, err := h.walletService.GetTransactionHistory(c.Context(), userID, page, limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": 500,
+			"msg":  "Failed to get order history",
+		})
+	}
+
+	hasMore := len(history) == limit
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "success",
+		"data": fiber.Map{
+			"orders":   history,
+			"page":     page,
+			"limit":    limit,
+			"has_more": hasMore,
+		},
+	})
 }

@@ -33,3 +33,24 @@ type PushNotification struct {
 	CreatedAt      time.Time `gorm:"type:timestamptz;default:now()"`
 	UpdatedAt      time.Time `gorm:"type:timestamptz;default:now()"`
 }
+
+// ============================================
+// APP SETTINGS MODELS
+// ============================================
+
+// AppSettings represents user app preferences
+type AppSettings struct {
+	AppLanguage    string     `json:"app_language" db:"app_language"`
+	AppTheme       string     `json:"app_theme" db:"app_theme"`
+	CacheClearedAt *time.Time `json:"cache_cleared_at,omitempty" db:"cache_cleared_at"`
+}
+
+// ChangeLanguageRequest represents language change request
+type ChangeLanguageRequest struct {
+	Language string `json:"language" validate:"required,oneof=en am om ti so ar"`
+}
+
+// ChangeThemeRequest represents theme change request
+type ChangeThemeRequest struct {
+	Theme string `json:"theme" validate:"required,oneof=light dark auto"`
+}

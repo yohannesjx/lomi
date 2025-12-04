@@ -608,3 +608,36 @@ func joinStrings(strs []string, sep string) string {
 	}
 	return result
 }
+
+// ============================================
+// APP SETTINGS
+// ============================================
+
+// ChangeAppLanguage changes user's app language
+func (r *ProfileRepository) ChangeAppLanguage(ctx context.Context, userID, language string) error {
+	query := `UPDATE users SET app_language = $1 WHERE id = $2::uuid`
+	_, err := r.db.ExecContext(ctx, query, language, userID)
+	return err
+}
+
+// ChangeAppTheme changes user's app theme
+func (r *ProfileRepository) ChangeAppTheme(ctx context.Context, userID, theme string) error {
+	query := `UPDATE users SET app_theme = $1 WHERE id = $2::uuid`
+	_, err := r.db.ExecContext(ctx, query, theme, userID)
+	return err
+}
+
+// ClearCache marks cache as cleared
+func (r *ProfileRepository) ClearCache(ctx context.Context, userID string) error {
+	query := `UPDATE users SET cache_cleared_at = NOW() WHERE id = $1::uuid`
+	_, err := r.db.ExecContext(ctx, query, userID)
+	return err
+}
+
+// GetAppSettings gets user's app settings
+func (r *ProfileRepository) GetAppSettings(ctx context.Context, userID string) (*models.AppSettings, error) {
+	var settings models.AppSettings
+	query := `SELECT app_language, app_theme, cache_cleared_at FROM users WHERE id = $1::uuid`
+	err := r.db.GetContext(ctx, &settings, query, userID)
+	return &settings, err
+}

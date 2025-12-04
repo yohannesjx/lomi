@@ -126,6 +126,14 @@ func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileH
 	protected.Get("/generateQRCode", profileHandler.GenerateQRCode)
 	protected.Post("/shareProfile", profileHandler.ShareProfile)
 
+	// ============================================
+	// APP SETTINGS (Phase 6)
+	// ============================================
+
+	protected.Post("/changeAppLanguage", profileHandler.ChangeAppLanguage)
+	protected.Post("/changeAppTheme", profileHandler.ChangeAppTheme)
+	protected.Post("/clearCache", profileHandler.ClearCache)
+
 	// Settings (keeping existing handlers for now)
 
 	// Media
@@ -195,6 +203,7 @@ func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileH
 
 	// Transactions
 	protected.Get("/wallet/transactions", walletHandler.GetTransactionHistory)
+	protected.Post("/showOrderHistory", walletHandler.ShowOrderHistory)
 
 	// Payout Methods
 	protected.Post("/wallet/payout-methods", walletHandler.AddPayoutMethod)
