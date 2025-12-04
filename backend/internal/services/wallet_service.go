@@ -27,7 +27,7 @@ func NewWalletService(walletRepo *repositories.WalletRepository) *WalletService 
 // ============================================
 
 // GetWalletBalance gets the wallet balance for a user
-func (s *WalletService) GetWalletBalance(ctx context.Context, userID int64) (*models.GetWalletBalanceResponse, error) {
+func (s *WalletService) GetWalletBalance(ctx context.Context, userID string) (*models.GetWalletBalanceResponse, error) {
 	wallet, err := s.walletRepo.GetOrCreateWallet(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get wallet: %w", err)
@@ -47,7 +47,7 @@ func (s *WalletService) GetWalletBalance(ctx context.Context, userID int64) (*mo
 // ============================================
 
 // PurchaseCoins handles coin purchase
-func (s *WalletService) PurchaseCoins(ctx context.Context, userID int64, req *models.PurchaseCoinsRequest) (*models.WalletTransaction, error) {
+func (s *WalletService) PurchaseCoins(ctx context.Context, userID string, req *models.PurchaseCoinsRequest) (*models.WalletTransaction, error) {
 	// Validate request
 	if req.Coins <= 0 {
 		return nil, errors.New("coins must be greater than 0")
@@ -144,7 +144,7 @@ func (s *WalletService) GetCoinPackages(ctx context.Context) ([]models.CoinPacka
 // ============================================
 
 // RequestWithdrawal creates a withdrawal request
-func (s *WalletService) RequestWithdrawal(ctx context.Context, userID int64, req *models.WithdrawRequest) (*models.WithdrawalRequest, error) {
+func (s *WalletService) RequestWithdrawal(ctx context.Context, userID string, req *models.WithdrawRequest) (*models.WithdrawalRequest, error) {
 	// Validate request
 	if req.Amount <= 0 {
 		return nil, errors.New("withdrawal amount must be greater than 0")
@@ -227,7 +227,7 @@ func (s *WalletService) RequestWithdrawal(ctx context.Context, userID int64, req
 }
 
 // GetWithdrawalHistory gets withdrawal history for a user
-func (s *WalletService) GetWithdrawalHistory(ctx context.Context, userID int64, page, pageSize int) ([]models.WithdrawalRequest, error) {
+func (s *WalletService) GetWithdrawalHistory(ctx context.Context, userID string, page, pageSize int) ([]models.WithdrawalRequest, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -244,7 +244,7 @@ func (s *WalletService) GetWithdrawalHistory(ctx context.Context, userID int64, 
 // ============================================
 
 // GetTransactionHistory gets transaction history for a user
-func (s *WalletService) GetTransactionHistory(ctx context.Context, userID int64, page, pageSize int) ([]models.WalletTransaction, error) {
+func (s *WalletService) GetTransactionHistory(ctx context.Context, userID string, page, pageSize int) ([]models.WalletTransaction, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -257,7 +257,7 @@ func (s *WalletService) GetTransactionHistory(ctx context.Context, userID int64,
 }
 
 // DebitWallet debits amount from user's wallet (for purchases, gifts, etc.)
-func (s *WalletService) DebitWallet(ctx context.Context, userID int64, amount float64, transactionType, description string, metadata models.JSONB) (*models.WalletTransaction, error) {
+func (s *WalletService) DebitWallet(ctx context.Context, userID string, amount float64, transactionType, description string, metadata models.JSONB) (*models.WalletTransaction, error) {
 	if amount <= 0 {
 		return nil, errors.New("amount must be greater than 0")
 	}
@@ -322,7 +322,7 @@ func (s *WalletService) DebitWallet(ctx context.Context, userID int64, amount fl
 }
 
 // CreditWallet credits amount to user's wallet (for gifts received, earnings, etc.)
-func (s *WalletService) CreditWallet(ctx context.Context, userID int64, amount float64, transactionType, description string, metadata models.JSONB) (*models.WalletTransaction, error) {
+func (s *WalletService) CreditWallet(ctx context.Context, userID string, amount float64, transactionType, description string, metadata models.JSONB) (*models.WalletTransaction, error) {
 	if amount <= 0 {
 		return nil, errors.New("amount must be greater than 0")
 	}
@@ -386,7 +386,7 @@ func (s *WalletService) CreditWallet(ctx context.Context, userID int64, amount f
 // ============================================
 
 // AddPayoutMethod adds a new payout method
-func (s *WalletService) AddPayoutMethod(ctx context.Context, userID int64, req *models.AddPayoutMethodRequest) (*models.PayoutMethod, error) {
+func (s *WalletService) AddPayoutMethod(ctx context.Context, userID string, req *models.AddPayoutMethodRequest) (*models.PayoutMethod, error) {
 	// Validate method type
 	validMethods := map[string]bool{
 		models.PayoutMethodBankAccount: true,
@@ -416,12 +416,12 @@ func (s *WalletService) AddPayoutMethod(ctx context.Context, userID int64, req *
 }
 
 // GetPayoutMethods gets all payout methods for a user
-func (s *WalletService) GetPayoutMethods(ctx context.Context, userID int64) ([]models.PayoutMethod, error) {
+func (s *WalletService) GetPayoutMethods(ctx context.Context, userID string) ([]models.PayoutMethod, error) {
 	return s.walletRepo.GetPayoutMethods(ctx, userID)
 }
 
 // DeletePayoutMethod deletes a payout method
-func (s *WalletService) DeletePayoutMethod(ctx context.Context, methodID, userID int64) error {
+func (s *WalletService) DeletePayoutMethod(ctx context.Context, methodID, userID string) error {
 	return s.walletRepo.DeletePayoutMethod(ctx, methodID, userID)
 }
 

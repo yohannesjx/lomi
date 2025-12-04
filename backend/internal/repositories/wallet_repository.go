@@ -26,7 +26,7 @@ func NewWalletRepository(db *sqlx.DB) *WalletRepository {
 // ============================================
 
 // GetOrCreateWallet gets or creates a wallet for a user
-func (r *WalletRepository) GetOrCreateWallet(ctx context.Context, userID int64) (*models.Wallet, error) {
+func (r *WalletRepository) GetOrCreateWallet(ctx context.Context, userID string) (*models.Wallet, error) {
 	var wallet models.Wallet
 
 	// Try to get existing wallet
@@ -57,7 +57,7 @@ func (r *WalletRepository) GetOrCreateWallet(ctx context.Context, userID int64) 
 }
 
 // GetWalletByUserID gets a wallet by user ID
-func (r *WalletRepository) GetWalletByUserID(ctx context.Context, userID int64) (*models.Wallet, error) {
+func (r *WalletRepository) GetWalletByUserID(ctx context.Context, userID string) (*models.Wallet, error) {
 	var wallet models.Wallet
 	err := r.db.GetContext(ctx, &wallet, `
 		SELECT * FROM wallets WHERE user_id = $1
@@ -75,7 +75,7 @@ func (r *WalletRepository) GetWalletByUserID(ctx context.Context, userID int64) 
 }
 
 // UpdateWalletBalance updates wallet balance (use within transaction)
-func (r *WalletRepository) UpdateWalletBalance(ctx context.Context, tx *sqlx.Tx, walletID int64, newBalance float64) error {
+func (r *WalletRepository) UpdateWalletBalance(ctx context.Context, tx *sqlx.Tx, walletID string, newBalance float64) error {
 	result, err := tx.ExecContext(ctx, `
 		UPDATE wallets 
 		SET balance = $1, updated_at = NOW()
@@ -99,7 +99,7 @@ func (r *WalletRepository) UpdateWalletBalance(ctx context.Context, tx *sqlx.Tx,
 }
 
 // IncrementTotalEarned increments total earned amount
-func (r *WalletRepository) IncrementTotalEarned(ctx context.Context, tx *sqlx.Tx, walletID int64, amount float64) error {
+func (r *WalletRepository) IncrementTotalEarned(ctx context.Context, tx *sqlx.Tx, walletID string, amount float64) error {
 	_, err := tx.ExecContext(ctx, `
 		UPDATE wallets 
 		SET total_earned = total_earned + $1, updated_at = NOW()
@@ -110,7 +110,7 @@ func (r *WalletRepository) IncrementTotalEarned(ctx context.Context, tx *sqlx.Tx
 }
 
 // IncrementTotalSpent increments total spent amount
-func (r *WalletRepository) IncrementTotalSpent(ctx context.Context, tx *sqlx.Tx, walletID int64, amount float64) error {
+func (r *WalletRepository) IncrementTotalSpent(ctx context.Context, tx *sqlx.Tx, walletID string, amount float64) error {
 	_, err := tx.ExecContext(ctx, `
 		UPDATE wallets 
 		SET total_spent = total_spent + $1, updated_at = NOW()
@@ -121,7 +121,7 @@ func (r *WalletRepository) IncrementTotalSpent(ctx context.Context, tx *sqlx.Tx,
 }
 
 // IncrementTotalWithdrawn increments total withdrawn amount
-func (r *WalletRepository) IncrementTotalWithdrawn(ctx context.Context, tx *sqlx.Tx, walletID int64, amount float64) error {
+func (r *WalletRepository) IncrementTotalWithdrawn(ctx context.Context, tx *sqlx.Tx, walletID string, amount float64) error {
 	_, err := tx.ExecContext(ctx, `
 		UPDATE wallets 
 		SET total_withdrawn = total_withdrawn + $1, updated_at = NOW()
@@ -166,7 +166,7 @@ func (r *WalletRepository) CreateTransaction(ctx context.Context, tx *sqlx.Tx, t
 }
 
 // GetTransactionHistory gets transaction history for a user
-func (r *WalletRepository) GetTransactionHistory(ctx context.Context, userID int64, limit, offset int) ([]models.WalletTransaction, error) {
+func (r *WalletRepository) GetTransactionHistory(ctx context.Context, userID string, limit, offset int) ([]models.WalletTransaction, error) {
 	var transactions []models.WalletTransaction
 
 	err := r.db.SelectContext(ctx, &transactions, `
@@ -184,7 +184,7 @@ func (r *WalletRepository) GetTransactionHistory(ctx context.Context, userID int
 }
 
 // GetTransactionByID gets a transaction by ID
-func (r *WalletRepository) GetTransactionByID(ctx context.Context, id int64) (*models.WalletTransaction, error) {
+func (r *WalletRepository) GetTransactionByID(ctx context.Context, id string) (*models.WalletTransaction, error) {
 	var transaction models.WalletTransaction
 
 	err := r.db.GetContext(ctx, &transaction, `
@@ -235,7 +235,7 @@ func (r *WalletRepository) CreateWithdrawalRequest(ctx context.Context, tx *sqlx
 }
 
 // GetWithdrawalHistory gets withdrawal history for a user
-func (r *WalletRepository) GetWithdrawalHistory(ctx context.Context, userID int64, limit, offset int) ([]models.WithdrawalRequest, error) {
+func (r *WalletRepository) GetWithdrawalHistory(ctx context.Context, userID string, limit, offset int) ([]models.WithdrawalRequest, error) {
 	var requests []models.WithdrawalRequest
 
 	err := r.db.SelectContext(ctx, &requests, `
@@ -271,7 +271,7 @@ func (r *WalletRepository) GetPendingWithdrawals(ctx context.Context, limit, off
 }
 
 // UpdateWithdrawalStatus updates withdrawal request status
-func (r *WalletRepository) UpdateWithdrawalStatus(ctx context.Context, tx *sqlx.Tx, id int64, status string, processedBy *int64, rejectionReason *string) error {
+func (r *WalletRepository) UpdateWithdrawalStatus(ctx context.Context, tx *sqlx.Tx, id string, status string, processedBy *int64, rejectionReason *string) error {
 	_, err := tx.ExecContext(ctx, `
 		UPDATE withdrawal_requests
 		SET status = $1, processed_by = $2, rejection_reason = $3, 
@@ -323,7 +323,7 @@ func (r *WalletRepository) CreatePayoutMethod(ctx context.Context, method *model
 }
 
 // GetPayoutMethods gets all payout methods for a user
-func (r *WalletRepository) GetPayoutMethods(ctx context.Context, userID int64) ([]models.PayoutMethod, error) {
+func (r *WalletRepository) GetPayoutMethods(ctx context.Context, userID string) ([]models.PayoutMethod, error) {
 	var methods []models.PayoutMethod
 
 	err := r.db.SelectContext(ctx, &methods, `
@@ -340,7 +340,7 @@ func (r *WalletRepository) GetPayoutMethods(ctx context.Context, userID int64) (
 }
 
 // DeletePayoutMethod deletes a payout method
-func (r *WalletRepository) DeletePayoutMethod(ctx context.Context, id, userID int64) error {
+func (r *WalletRepository) DeletePayoutMethod(ctx context.Context, id, userID string) error {
 	result, err := r.db.ExecContext(ctx, `
 		DELETE FROM payout_methods WHERE id = $1 AND user_id = $2
 	`, id, userID)
@@ -383,7 +383,7 @@ func (r *WalletRepository) GetActiveCoinPackages(ctx context.Context) ([]models.
 }
 
 // GetCoinPackageByID gets a coin package by ID
-func (r *WalletRepository) GetCoinPackageByID(ctx context.Context, id int64) (*models.CoinPackage, error) {
+func (r *WalletRepository) GetCoinPackageByID(ctx context.Context, id string) (*models.CoinPackage, error) {
 	var pkg models.CoinPackage
 
 	err := r.db.GetContext(ctx, &pkg, `

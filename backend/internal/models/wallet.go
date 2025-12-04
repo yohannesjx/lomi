@@ -33,8 +33,8 @@ func (j *JSONB) Scan(value interface{}) error {
 
 // Wallet represents a user's wallet
 type Wallet struct {
-	ID             int64     `json:"id" db:"id"`
-	UserID         int64     `json:"user_id" db:"user_id"`
+	ID             string    `json:"id" db:"id"`
+	UserID         string    `json:"user_id" db:"user_id"`
 	Balance        float64   `json:"balance" db:"balance"`
 	TotalEarned    float64   `json:"total_earned" db:"total_earned"`
 	TotalSpent     float64   `json:"total_spent" db:"total_spent"`
@@ -47,9 +47,9 @@ type Wallet struct {
 
 // WalletTransaction represents a wallet transaction
 type WalletTransaction struct {
-	ID              int64     `json:"id" db:"id"`
-	WalletID        int64     `json:"wallet_id" db:"wallet_id"`
-	UserID          int64     `json:"user_id" db:"user_id"`
+	ID              string    `json:"id" db:"id"`
+	WalletID        string    `json:"wallet_id" db:"wallet_id"`
+	UserID          string    `json:"user_id" db:"user_id"`
 	TransactionType string    `json:"transaction_type" db:"transaction_type"`
 	Amount          float64   `json:"amount" db:"amount"`
 	BalanceBefore   float64   `json:"balance_before" db:"balance_before"`
@@ -83,17 +83,17 @@ const (
 
 // WithdrawalRequest represents a withdrawal request
 type WithdrawalRequest struct {
-	ID               int64      `json:"id" db:"id"`
-	UserID           int64      `json:"user_id" db:"user_id"`
-	WalletID         int64      `json:"wallet_id" db:"wallet_id"`
+	ID               string     `json:"id" db:"id"`
+	UserID           string     `json:"user_id" db:"user_id"`
+	WalletID         string     `json:"wallet_id" db:"wallet_id"`
 	Amount           float64    `json:"amount" db:"amount"`
 	WithdrawalMethod string     `json:"withdrawal_method" db:"withdrawal_method"`
 	AccountDetails   JSONB      `json:"account_details" db:"account_details"`
 	Status           string     `json:"status" db:"status"`
 	RejectionReason  *string    `json:"rejection_reason,omitempty" db:"rejection_reason"`
-	ProcessedBy      *int64     `json:"processed_by,omitempty" db:"processed_by"`
+	ProcessedBy      *string    `json:"processed_by,omitempty" db:"processed_by"`
 	ProcessedAt      *time.Time `json:"processed_at,omitempty" db:"processed_at"`
-	TransactionID    *int64     `json:"transaction_id,omitempty" db:"transaction_id"`
+	TransactionID    *string    `json:"transaction_id,omitempty" db:"transaction_id"`
 	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
 }
@@ -109,8 +109,8 @@ const (
 
 // PayoutMethod represents a user's payout method
 type PayoutMethod struct {
-	ID             int64     `json:"id" db:"id"`
-	UserID         int64     `json:"user_id" db:"user_id"`
+	ID             string    `json:"id" db:"id"`
+	UserID         string    `json:"user_id" db:"user_id"`
 	MethodType     string    `json:"method_type" db:"method_type"`
 	AccountName    string    `json:"account_name" db:"account_name"`
 	AccountDetails JSONB     `json:"account_details" db:"account_details"`
@@ -129,7 +129,7 @@ const (
 
 // CoinPackage represents a coin package for purchase
 type CoinPackage struct {
-	ID           int64     `json:"id" db:"id"`
+	ID           string    `json:"id" db:"id"`
 	Name         string    `json:"name" db:"name"`
 	Coins        int       `json:"coins" db:"coins"`
 	Price        float64   `json:"price" db:"price"`
@@ -143,15 +143,15 @@ type CoinPackage struct {
 
 // CoinPurchase represents a coin purchase transaction
 type CoinPurchase struct {
-	ID               int64     `json:"id" db:"id"`
-	UserID           int64     `json:"user_id" db:"user_id"`
-	PackageID        *int64    `json:"package_id,omitempty" db:"package_id"`
+	ID               string    `json:"id" db:"id"`
+	UserID           string    `json:"user_id" db:"user_id"`
+	PackageID        *string   `json:"package_id,omitempty" db:"package_id"`
 	CoinsPurchased   int       `json:"coins_purchased" db:"coins_purchased"`
 	AmountPaid       float64   `json:"amount_paid" db:"amount_paid"`
 	Currency         string    `json:"currency" db:"currency"`
 	PaymentMethod    string    `json:"payment_method" db:"payment_method"`
 	PaymentReference *string   `json:"payment_reference,omitempty" db:"payment_reference"`
-	TransactionID    *int64    `json:"transaction_id,omitempty" db:"transaction_id"`
+	TransactionID    *string   `json:"transaction_id,omitempty" db:"transaction_id"`
 	Status           string    `json:"status" db:"status"`
 	CreatedAt        time.Time `json:"created_at" db:"created_at"`
 }
@@ -179,7 +179,7 @@ type GetWalletBalanceResponse struct {
 
 // PurchaseCoinsRequest represents a coin purchase request
 type PurchaseCoinsRequest struct {
-	PackageID        *int64  `json:"package_id,omitempty"`
+	PackageID        *string `json:"package_id,omitempty"`
 	Coins            int     `json:"coins" validate:"required,min=1"`
 	Amount           float64 `json:"amount" validate:"required,min=0.01"`
 	PaymentMethod    string  `json:"payment_method" validate:"required"`
@@ -203,7 +203,7 @@ type AddPayoutMethodRequest struct {
 
 // TransactionHistoryResponse represents a transaction history item
 type TransactionHistoryResponse struct {
-	ID              int64     `json:"id"`
+	ID              string    `json:"id"`
 	TransactionType string    `json:"transaction_type"`
 	Amount          float64   `json:"amount"`
 	BalanceBefore   float64   `json:"balance_before"`
@@ -215,7 +215,7 @@ type TransactionHistoryResponse struct {
 
 // WithdrawalHistoryResponse represents a withdrawal history item
 type WithdrawalHistoryResponse struct {
-	ID               int64      `json:"id"`
+	ID               string     `json:"id"`
 	Amount           float64    `json:"amount"`
 	WithdrawalMethod string     `json:"withdrawal_method"`
 	Status           string     `json:"status"`

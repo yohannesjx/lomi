@@ -28,7 +28,7 @@ func NewWalletHandler(walletService *services.WalletService) *WalletHandler {
 // GetWalletBalance handles GET /api/v1/wallet/balance
 func (h *WalletHandler) GetWalletBalance(c *fiber.Ctx) error {
 	// Get user ID from context (set by auth middleware)
-	userID, ok := c.Locals("user_id").(int64)
+	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"code": 401,
@@ -74,7 +74,7 @@ func (h *WalletHandler) GetCoinPackages(c *fiber.Ctx) error {
 
 // PurchaseCoins handles POST /api/v1/wallet/purchase-coins
 func (h *WalletHandler) PurchaseCoins(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(int64)
+	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"code": 401,
@@ -133,7 +133,7 @@ func (h *WalletHandler) PurchaseCoins(c *fiber.Ctx) error {
 
 // RequestWithdrawal handles POST /api/v1/wallet/withdraw
 func (h *WalletHandler) RequestWithdrawal(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(int64)
+	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"code": 401,
@@ -192,7 +192,7 @@ func (h *WalletHandler) RequestWithdrawal(c *fiber.Ctx) error {
 
 // GetWithdrawalHistory handles GET /api/v1/wallet/withdrawal-history
 func (h *WalletHandler) GetWithdrawalHistory(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(int64)
+	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"code": 401,
@@ -225,7 +225,7 @@ func (h *WalletHandler) GetWithdrawalHistory(c *fiber.Ctx) error {
 
 // GetTransactionHistory handles GET /api/v1/wallet/transactions
 func (h *WalletHandler) GetTransactionHistory(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(int64)
+	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"code": 401,
@@ -258,7 +258,7 @@ func (h *WalletHandler) GetTransactionHistory(c *fiber.Ctx) error {
 
 // AddPayoutMethod handles POST /api/v1/wallet/payout-methods
 func (h *WalletHandler) AddPayoutMethod(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(int64)
+	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"code": 401,
@@ -313,7 +313,7 @@ func (h *WalletHandler) AddPayoutMethod(c *fiber.Ctx) error {
 
 // GetPayoutMethods handles GET /api/v1/wallet/payout-methods
 func (h *WalletHandler) GetPayoutMethods(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(int64)
+	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"code": 401,
@@ -338,7 +338,7 @@ func (h *WalletHandler) GetPayoutMethods(c *fiber.Ctx) error {
 
 // DeletePayoutMethod handles DELETE /api/v1/wallet/payout-methods/:id
 func (h *WalletHandler) DeletePayoutMethod(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(int64)
+	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"code": 401,
@@ -346,15 +346,15 @@ func (h *WalletHandler) DeletePayoutMethod(c *fiber.Ctx) error {
 		})
 	}
 
-	methodID, err := strconv.ParseInt(c.Params("id"), 10, 64)
-	if err != nil {
+	methodID := c.Params("id")
+	if methodID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"code": 400,
 			"msg":  "Invalid payout method ID",
 		})
 	}
 
-	err = h.walletService.DeletePayoutMethod(c.Context(), methodID, userID)
+	err := h.walletService.DeletePayoutMethod(c.Context(), methodID, userID)
 	if err != nil {
 		statusCode := fiber.StatusInternalServerError
 		if err.Error() == "payout method not found" {

@@ -1,12 +1,12 @@
--- Wallet Management Schema
+-- Wallet Management Schema (UUID Compatible)
 -- Production-grade database schema for TikTok-style app wallet system
 
 -- ============================================
 -- 1. WALLET TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS wallets (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
     total_earned DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
     total_spent DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
@@ -29,18 +29,18 @@ CREATE INDEX idx_wallets_balance ON wallets(balance);
 -- 2. TRANSACTIONS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS wallet_transactions (
-    id SERIAL PRIMARY KEY,
-    wallet_id INTEGER NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    transaction_type VARCHAR(50) NOT NULL, -- 'credit', 'debit', 'purchase', 'gift_sent', 'gift_received', 'withdrawal', 'refund'
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    transaction_type VARCHAR(50) NOT NULL,
     amount DECIMAL(15, 2) NOT NULL,
     balance_before DECIMAL(15, 2) NOT NULL,
     balance_after DECIMAL(15, 2) NOT NULL,
     description TEXT,
-    reference_id VARCHAR(100), -- External reference (payment gateway, gift ID, etc.)
-    reference_type VARCHAR(50), -- 'gift', 'video', 'live_stream', 'purchase', 'withdrawal'
-    status VARCHAR(20) NOT NULL DEFAULT 'completed', -- 'pending', 'completed', 'failed', 'cancelled'
-    metadata JSONB, -- Additional data (payment method, recipient, etc.)
+    reference_id VARCHAR(100),
+    reference_type VARCHAR(50),
+    status VARCHAR(20) NOT NULL DEFAULT 'completed',
+    metadata JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     
     CONSTRAINT positive_amount CHECK (amount > 0),
@@ -58,17 +58,17 @@ CREATE INDEX idx_transactions_reference ON wallet_transactions(reference_id, ref
 -- 3. WITHDRAWAL REQUESTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS withdrawal_requests (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    wallet_id INTEGER NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
     amount DECIMAL(15, 2) NOT NULL,
-    withdrawal_method VARCHAR(50) NOT NULL, -- 'bank_transfer', 'mobile_money', 'paypal', etc.
-    account_details JSONB NOT NULL, -- Bank account, mobile number, etc.
-    status VARCHAR(20) NOT NULL DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'rejected', 'cancelled'
+    withdrawal_method VARCHAR(50) NOT NULL,
+    account_details JSONB NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
     rejection_reason TEXT,
-    processed_by INTEGER REFERENCES users(id), -- Admin who processed
+    processed_by UUID REFERENCES users(id),
     processed_at TIMESTAMP,
-    transaction_id INTEGER REFERENCES wallet_transactions(id),
+    transaction_id UUID REFERENCES wallet_transactions(id),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     
@@ -84,11 +84,11 @@ CREATE INDEX idx_withdrawals_created_at ON withdrawal_requests(created_at DESC);
 -- 4. PAYOUT METHODS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS payout_methods (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    method_type VARCHAR(50) NOT NULL, -- 'bank_account', 'mobile_money', 'paypal'
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    method_type VARCHAR(50) NOT NULL,
     account_name VARCHAR(255) NOT NULL,
-    account_details JSONB NOT NULL, -- Account number, bank name, mobile number, etc.
+    account_details JSONB NOT NULL,
     is_default BOOLEAN NOT NULL DEFAULT FALSE,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -102,7 +102,7 @@ CREATE INDEX idx_payout_methods_default ON payout_methods(user_id, is_default) W
 -- 5. COIN PACKAGES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS coin_packages (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     coins INTEGER NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
@@ -123,16 +123,16 @@ CREATE INDEX idx_coin_packages_active ON coin_packages(is_active, display_order)
 -- 6. PURCHASE HISTORY TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS coin_purchases (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    package_id INTEGER REFERENCES coin_packages(id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    package_id UUID REFERENCES coin_packages(id),
     coins_purchased INTEGER NOT NULL,
     amount_paid DECIMAL(10, 2) NOT NULL,
     currency VARCHAR(3) NOT NULL DEFAULT 'USD',
-    payment_method VARCHAR(50) NOT NULL, -- 'local_wallet', 'stripe', 'paypal', etc.
-    payment_reference VARCHAR(255), -- External payment ID
-    transaction_id INTEGER REFERENCES wallet_transactions(id),
-    status VARCHAR(20) NOT NULL DEFAULT 'pending', -- 'pending', 'completed', 'failed', 'refunded'
+    payment_method VARCHAR(50) NOT NULL,
+    payment_reference VARCHAR(255),
+    transaction_id UUID REFERENCES wallet_transactions(id),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     
     CONSTRAINT positive_coins_purchased CHECK (coins_purchased > 0),
@@ -202,10 +202,10 @@ GROUP BY w.id, u.username;
 -- ============================================
 
 -- Function to create wallet for new user
-CREATE OR REPLACE FUNCTION create_user_wallet(p_user_id INTEGER)
-RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION create_user_wallet(p_user_id UUID)
+RETURNS UUID AS $$
 DECLARE
-    v_wallet_id INTEGER;
+    v_wallet_id UUID;
 BEGIN
     INSERT INTO wallets (user_id, balance, currency)
     VALUES (p_user_id, 0.00, 'USD')
@@ -217,10 +217,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Function to get or create wallet
-CREATE OR REPLACE FUNCTION get_or_create_wallet(p_user_id INTEGER)
-RETURNS INTEGER AS $$
+CREATE OR REPLACE FUNCTION get_or_create_wallet(p_user_id UUID)
+RETURNS UUID AS $$
 DECLARE
-    v_wallet_id INTEGER;
+    v_wallet_id UUID;
 BEGIN
     SELECT id INTO v_wallet_id FROM wallets WHERE user_id = p_user_id;
     
