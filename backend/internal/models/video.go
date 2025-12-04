@@ -78,15 +78,15 @@ type VideoComment struct {
 type VideoResponse struct {
 	Video
 	// User info
-	UserName       string  `json:"user_name"`
-	UserProfilePic *string `json:"user_profile_pic,omitempty"`
-	UserIsVerified bool    `json:"user_is_verified"`
+	UserName       string  `json:"user_name" db:"user_name"`
+	UserProfilePic *string `json:"user_profile_pic,omitempty" db:"user_profile_pic"`
+	UserIsVerified bool    `json:"user_is_verified" db:"user_is_verified"`
 
 	// Engagement status for current user
-	IsLiked     bool `json:"is_liked"`
-	IsFavorited bool `json:"is_favorited"`
-	IsReposted  bool `json:"is_reposted"`
-	IsFollowing bool `json:"is_following"`
+	IsLiked     bool `json:"is_liked" db:"is_liked"`
+	IsFavorited bool `json:"is_favorited" db:"is_favorited"`
+	IsReposted  bool `json:"is_reposted" db:"is_reposted"`
+	IsFollowing bool `json:"is_following" db:"is_following"`
 }
 
 // GetUserVideosRequest represents request to get user's videos
