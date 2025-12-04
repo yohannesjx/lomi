@@ -70,24 +70,24 @@ func GetSwipeCards(c *fiber.Ctx) error {
 		query = query.Where("id NOT IN ?", blockedIDs)
 	}
 
-	// Gender preference - check user's looking_for preference
-	var lookingFor string
-	if prefs, ok := currentUser.Preferences["looking_for"].(string); ok {
-		lookingFor = prefs
-	} else {
-		// Default: opposite gender
-		if currentUser.Gender == models.GenderMale {
-			lookingFor = "female"
-		} else if currentUser.Gender == models.GenderFemale {
-			lookingFor = "male"
-		}
-	}
+	// Gender preference - temporarily disabled for testing
+	// var lookingFor string
+	// if prefs, ok := currentUser.Preferences["looking_for"].(string); ok {
+	// 	lookingFor = prefs
+	// } else {
+	// 	// Default: opposite gender
+	// 	if currentUser.Gender == models.GenderMale {
+	// 		lookingFor = "female"
+	// 	} else if currentUser.Gender == models.GenderFemale {
+	// 		lookingFor = "male"
+	// 	}
+	// }
 
-	if lookingFor == "male" {
-		query = query.Where("gender = ?", models.GenderMale)
-	} else if lookingFor == "female" {
-		query = query.Where("gender = ?", models.GenderFemale)
-	}
+	// if lookingFor == "male" {
+	// 	query = query.Where("gender = ?", models.GenderMale)
+	// } else if lookingFor == "female" {
+	// 	query = query.Where("gender = ?", models.GenderFemale)
+	// }
 
 	// Limit to 20 cards per request
 	var users []models.User
