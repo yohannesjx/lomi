@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/websocket/v2"
 )
 
-func SetupRoutes(app *fiber.App) {
+func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler) {
 	api := app.Group("/api/v1")
 
 	// Health Check
@@ -120,7 +120,6 @@ func SetupRoutes(app *fiber.App) {
 	// ============================================
 	// NEW WALLET MANAGEMENT SYSTEM (Production-Grade)
 	// ============================================
-	walletHandler := handlers.NewWalletHandler( /* inject wallet service */ )
 
 	// Wallet Balance & Info
 	protected.Get("/wallet/v2/balance", walletHandler.GetWalletBalance)

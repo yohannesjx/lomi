@@ -4,6 +4,8 @@ import (
 	"log"
 	"lomi-backend/config"
 	"lomi-backend/internal/database"
+	"lomi-backend/internal/handlers"
+	"lomi-backend/internal/repositories"
 	"lomi-backend/internal/routes"
 	"lomi-backend/internal/services"
 
@@ -17,16 +19,19 @@ func main() {
 	// 1. Load Configuration
 	cfg := config.LoadConfig()
 
-	// 2. Connect to Database
+	// 2. Connect to Database (GORM)
 	database.ConnectDB(cfg)
 
-	// 3. Connect to Redis
+	// 3. Connect to Database (sqlx for wallet system)
+	database.ConnectSqlxDB(cfg)
+
+	// 4. Connect to Redis
 	database.ConnectRedis(cfg)
 
-	// 4. Connect to S3/R2
+	// 5. Connect to S3/R2
 	database.ConnectS3(cfg)
 
-	// 5. Initialize Notification Service
+	// 6. Initialize Notification Service
 	services.InitNotificationService(
 		cfg.TelegramBotToken,
 		cfg.OneSignalAppID,
@@ -34,14 +39,19 @@ func main() {
 		cfg.FirebaseServerKey,
 	)
 
-	// 5. Initialize Fiber App
+	// 7. Initialize Wallet Dependencies
+	walletRepo := repositories.NewWalletRepository(database.SqlxDB)
+	walletService := services.NewWalletService(walletRepo)
+	walletHandler := handlers.NewWalletHandler(walletService)
+
+	// 8. Initialize Fiber App
 	app := fiber.New(fiber.Config{
 		AppName:      cfg.AppName,
 		ServerHeader: "Lomi-Social",
 		Prefork:      false, // Set to true for production if needed
 	})
 
-	// 6. Middleware
+	// 9. Middleware
 	app.Use(logger.New())  // Request logging
 	app.Use(recover.New()) // Panic recovery
 	app.Use(cors.New(cors.Config{
@@ -50,11 +60,11 @@ func main() {
 		AllowMethods: "GET, POST, HEAD, PUT, DELETE, PATCH",
 	}))
 
-	// 7. Routes
-	routes.SetupRoutes(app)
+	// 10. Routes
+	routes.SetupRoutes(app, walletHandler)
 	routes.SetupStreamingRoutes(app) // TikTok-style streaming endpoints
 
-	// 8. Start Server
+	// 11. Start Server
 	log.Printf("🚀 Server starting on port %s", cfg.AppPort)
 	if err := app.Listen(":" + cfg.AppPort); err != nil {
 		log.Fatal("Server failed to start: ", err)

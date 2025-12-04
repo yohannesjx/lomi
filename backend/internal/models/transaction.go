@@ -12,11 +12,8 @@ type PaymentMethod string
 type PaymentStatus string
 
 const (
-	TransactionTypePurchase                  TransactionType = "purchase"
-	TransactionTypeGiftSent                  TransactionType = "gift_sent"
-	TransactionTypeGiftReceived              TransactionType = "gift_received"
+	// Legacy transaction types (keep unique ones)
 	TransactionTypeBoost                     TransactionType = "boost"
-	TransactionTypeRefund                    TransactionType = "refund"
 	TransactionTypeChannelSubscriptionReward TransactionType = "channel_subscription_reward"
 	TransactionTypeReveal                    TransactionType = "reveal"
 
