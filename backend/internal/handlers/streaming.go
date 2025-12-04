@@ -144,12 +144,6 @@ func (h *StreamingHandler) RegisterUser(c *fiber.Ctx) error {
 				counter++
 			}
 
-			// Set email to nil if empty to avoid unique constraint violation
-			var emailPtr *string
-			if req.Email != "" {
-				emailPtr = &req.Email
-			}
-
 			user = models.User{
 				Username:           username,
 				Name:               fullName,
