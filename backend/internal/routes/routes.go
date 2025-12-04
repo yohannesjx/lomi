@@ -107,6 +107,10 @@ func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileH
 	protected.Post("/showUserRepostedVideos", videoHandler.ShowUserRepostedVideos)
 	protected.Post("/showFavouriteVideos", videoHandler.ShowFavouriteVideos)
 
+	// Draft Videos
+	protected.Post("/showDraftVideos", videoHandler.ShowDraftVideos)
+	protected.Post("/deleteDraftVideo", videoHandler.DeleteDraftVideo)
+
 	// ============================================
 	// ACCOUNT MANAGEMENT (Phase 2.3)
 	// ============================================

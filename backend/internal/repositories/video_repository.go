@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 
 	"lomi-backend/internal/models"
 
@@ -192,4 +193,66 @@ func (r *VideoRepository) GetUserFavoriteVideos(ctx context.Context, userID, vie
 	}
 
 	return videos, totalCount, nil
+}
+
+// ============================================
+// DRAFT VIDEOS
+// ============================================
+
+// GetUserDraftVideos gets all draft videos for a user
+func (r *VideoRepository) GetUserDraftVideos(ctx context.Context, userID string, page, limit int) ([]models.Video, int64, error) {
+	offset := (page - 1) * limit
+
+	// Get total count
+	var totalCount int64
+	countQuery := `
+		SELECT COUNT(*) 
+		FROM videos 
+		WHERE user_id = $1::uuid AND is_draft = TRUE AND deleted_at IS NULL
+	`
+	err := r.db.GetContext(ctx, &totalCount, countQuery, userID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get draft videos
+	query := `
+		SELECT *
+		FROM videos
+		WHERE user_id = $1::uuid AND is_draft = TRUE AND deleted_at IS NULL
+		ORDER BY draft_saved_at DESC, created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	videos := make([]models.Video, 0)
+	err = r.db.SelectContext(ctx, &videos, query, userID, limit, offset)
+	if err != nil {
+		return videos, totalCount, err
+	}
+
+	return videos, totalCount, nil
+}
+
+// DeleteDraftVideo deletes a draft video
+func (r *VideoRepository) DeleteDraftVideo(ctx context.Context, videoID, userID string) error {
+	query := `
+		UPDATE videos 
+		SET deleted_at = NOW() 
+		WHERE id = $1::uuid AND user_id = $2::uuid AND is_draft = TRUE AND deleted_at IS NULL
+	`
+	result, err := r.db.ExecContext(ctx, query, videoID, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("draft video not found or already deleted")
+	}
+
+	return nil
 }

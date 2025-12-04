@@ -182,3 +182,68 @@ func (h *VideoHandler) ShowFavouriteVideos(c *fiber.Ctx) error {
 		"data": result,
 	})
 }
+
+// ============================================
+// DRAFT VIDEOS
+// ============================================
+
+// ShowDraftVideos handles POST /api/v1/showDraftVideos
+func (h *VideoHandler) ShowDraftVideos(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
+	
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	
+	result, err := h.videoService.GetUserDraftVideos(c.Context(), userID, page, limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": 500,
+			"msg":  "Failed to get draft videos",
+		})
+	}
+	
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "success",
+		"data": result,
+	})
+}
+
+// DeleteDraftVideo handles POST /api/v1/deleteDraftVideo
+func (h *VideoHandler) DeleteDraftVideo(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
+	
+	var reqBody struct {
+		VideoID string `json:"video_id"`
+	}
+	if err := c.BodyParser(&reqBody); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+	
+	if reqBody.VideoID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "video_id is required",
+		})
+	}
+	
+	err := h.videoService.DeleteDraftVideo(c.Context(), reqBody.VideoID, userID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+	
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Draft video deleted successfully",
+	})
+}

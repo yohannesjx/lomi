@@ -27,6 +27,8 @@ type Video struct {
 	IsApproved       bool       `json:"is_approved" db:"is_approved"`
 	ModerationStatus string     `json:"moderation_status" db:"moderation_status"`
 	ModerationNotes  *string    `json:"moderation_notes,omitempty" db:"moderation_notes"`
+	IsDraft          bool       `json:"is_draft" db:"is_draft"`
+	DraftSavedAt     *time.Time `json:"draft_saved_at,omitempty" db:"draft_saved_at"`
 	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
 	DeletedAt        *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
