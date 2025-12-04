@@ -25,28 +25,13 @@ import (
 // - Live chat: Redis Pub/Sub + Redis Stream + PostgreSQL (async)
 
 var (
-	redisClient *redis.Client
 	ctx         = context.Background()
 	rateLimiter = NewRateLimiter()
 )
 
-// InitRedis initializes Redis client for live chat
-func InitRedis(addr, password string, db int) error {
-	redisClient = redis.NewClient(&redis.Options{
-		Addr:         addr,
-		Password:     password,
-		DB:           db,
-		PoolSize:     100,
-		MinIdleConns: 10,
-	})
-
-	// Test connection
-	if err := redisClient.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("redis connection failed: %w", err)
-	}
-
-	log.Printf("✅ Redis connected: %s", addr)
-	return nil
+// GetRedisClient returns the Redis client from database package
+func getRedisClient() *redis.Client {
+	return database.RedisClient
 }
 
 // ==================== MESSAGE TYPES ====================
@@ -178,15 +163,15 @@ func (h *ChatHub) registerClient(client *ChatClient) {
 
 		// Increment viewer count in Redis
 		viewerKey := fmt.Sprintf("live:%s:viewers", client.LiveStreamID.String())
-		redisClient.Incr(ctx, viewerKey)
-		redisClient.Expire(ctx, viewerKey, 24*time.Hour)
+		database.RedisClient.Incr(ctx, viewerKey)
+		database.RedisClient.Expire(ctx, viewerKey, 24*time.Hour)
 
 		// Get current viewer count
-		viewerCount, _ := redisClient.Get(ctx, viewerKey).Int()
+		viewerCount, _ := database.RedisClient.Get(ctx, viewerKey).Int()
 
 		// Subscribe to Redis channel for live updates
 		channel := fmt.Sprintf("live:%s", client.LiveStreamID.String())
-		client.RedisSub = redisClient.Subscribe(ctx, channel)
+		client.RedisSub = database.RedisClient.Subscribe(ctx, channel)
 
 		// Start Redis listener
 		go client.listenRedis()
@@ -233,8 +218,8 @@ func (h *ChatHub) unregisterClient(client *ChatClient) {
 
 				// Decrement viewer count
 				viewerKey := fmt.Sprintf("live:%s:viewers", client.LiveStreamID.String())
-				redisClient.Decr(ctx, viewerKey)
-				viewerCount, _ := redisClient.Get(ctx, viewerKey).Int()
+				database.RedisClient.Decr(ctx, viewerKey)
+				viewerCount, _ := database.RedisClient.Get(ctx, viewerKey).Int()
 
 				// Unsubscribe from Redis
 				if client.RedisSub != nil {
@@ -303,7 +288,7 @@ func (h *ChatHub) sendToUser(userID uuid.UUID, message []byte) {
 func (h *ChatHub) publishToLive(liveStreamID string, msg *WSChatMessage) {
 	channel := fmt.Sprintf("live:%s", liveStreamID)
 	msgBytes, _ := json.Marshal(msg)
-	redisClient.Publish(ctx, channel, msgBytes)
+	database.RedisClient.Publish(ctx, channel, msgBytes)
 }
 
 var chatHub *ChatHub
@@ -591,12 +576,12 @@ func (c *ChatClient) handleLiveChatMessage(wsMsg *WSChatMessage) {
 
 	// Generate sequence number
 	seqKey := fmt.Sprintf("live:%s:seq", liveStreamID)
-	seq, err := redisClient.Incr(ctx, seqKey).Result()
+	seq, err := database.RedisClient.Incr(ctx, seqKey).Result()
 	if err != nil {
 		log.Printf("❌ Failed to generate sequence: %v", err)
 		return
 	}
-	redisClient.Expire(ctx, seqKey, 24*time.Hour)
+	database.RedisClient.Expire(ctx, seqKey, 24*time.Hour)
 
 	// Prepare message
 	wsMsg.Seq = seq
@@ -607,7 +592,7 @@ func (c *ChatClient) handleLiveChatMessage(wsMsg *WSChatMessage) {
 
 	// Get viewer count
 	viewerKey := fmt.Sprintf("live:%s:viewers", liveStreamID)
-	viewerCount, _ := redisClient.Get(ctx, viewerKey).Int()
+	viewerCount, _ := database.RedisClient.Get(ctx, viewerKey).Int()
 	wsMsg.ViewerCount = viewerCount
 
 	// Publish to Redis Pub/Sub for real-time delivery
@@ -616,14 +601,14 @@ func (c *ChatClient) handleLiveChatMessage(wsMsg *WSChatMessage) {
 	// Add to Redis Stream for persistence and replay
 	streamKey := fmt.Sprintf("live:%s:history", liveStreamID)
 	msgJSON, _ := json.Marshal(wsMsg)
-	redisClient.XAdd(ctx, &redis.XAddArgs{
+	database.RedisClient.XAdd(ctx, &redis.XAddArgs{
 		Stream: streamKey,
 		Values: map[string]interface{}{
 			"seq":     seq,
 			"message": string(msgJSON),
 		},
 	})
-	redisClient.Expire(ctx, streamKey, 24*time.Hour)
+	database.RedisClient.Expire(ctx, streamKey, 24*time.Hour)
 
 	// Async save to PostgreSQL
 	go c.saveLiveMessageToDB(wsMsg)
@@ -647,7 +632,7 @@ func (c *ChatClient) handlePinMessage(wsMsg *WSChatMessage) {
 	// Store pinned message in Redis
 	pinnedKey := fmt.Sprintf("live:%s:pinned", liveStreamID)
 	msgJSON, _ := json.Marshal(wsMsg)
-	redisClient.Set(ctx, pinnedKey, msgJSON, 24*time.Hour)
+	database.RedisClient.Set(ctx, pinnedKey, msgJSON, 24*time.Hour)
 
 	// Broadcast pinned message
 	wsMsg.Type = "pin"
@@ -703,7 +688,7 @@ func (c *ChatClient) sendMissedMessages(lastSeq int64) {
 	streamKey := fmt.Sprintf("live:%s:history", liveStreamID)
 
 	// Read from Redis Stream
-	messages, err := redisClient.XRange(ctx, streamKey, "-", "+").Result()
+	messages, err := database.RedisClient.XRange(ctx, streamKey, "-", "+").Result()
 	if err != nil {
 		log.Printf("❌ Failed to read stream: %v", err)
 		return
@@ -858,7 +843,7 @@ func GetLiveViewerCount(c *fiber.Ctx) error {
 	liveStreamID := c.Params("id")
 	viewerKey := fmt.Sprintf("live:%s:viewers", liveStreamID)
 
-	viewerCount, err := redisClient.Get(ctx, viewerKey).Int()
+	viewerCount, err := database.RedisClient.Get(ctx, viewerKey).Int()
 	if err != nil {
 		viewerCount = 0
 	}
@@ -874,7 +859,7 @@ func GetPinnedMessage(c *fiber.Ctx) error {
 	liveStreamID := c.Params("id")
 	pinnedKey := fmt.Sprintf("live:%s:pinned", liveStreamID)
 
-	msgJSON, err := redisClient.Get(ctx, pinnedKey).Result()
+	msgJSON, err := database.RedisClient.Get(ctx, pinnedKey).Result()
 	if err != nil {
 		return c.JSON(fiber.Map{"pinned_message": nil})
 	}

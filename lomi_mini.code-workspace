@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../lomi_tik/android"
+		},
+		{
+			"path": "../lomi_tik/ios"
+		}
+	],
+	"settings": {}
+}

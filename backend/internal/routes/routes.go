@@ -142,6 +142,13 @@ func SetupRoutes(app *fiber.App) {
 	admin.Put("/moderation/rejected/:id/verify", handlers.VerifyRejectedPhoto)
 	admin.Delete("/moderation/rejected/:id", handlers.DeleteRejectedPhoto)
 
-	// WebSocket (handles auth internally)
+	// WebSocket - Legacy (keep for backward compatibility)
 	api.Get("/ws", websocket.New(handlers.HandleWebSocket))
+
+	// WebSocket - Unified Chat (handles both private 1-on-1 and live streaming chat)
+	api.Get("/ws/chat", websocket.New(handlers.HandleUnifiedChat))
+
+	// Live Chat HTTP Endpoints
+	protected.Get("/live/:id/viewers", handlers.GetLiveViewerCount)
+	protected.Get("/live/:id/pinned", handlers.GetPinnedMessage)
 }
