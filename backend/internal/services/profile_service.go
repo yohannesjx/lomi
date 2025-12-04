@@ -197,3 +197,47 @@ func (s *ProfileService) ApplyReferralCode(ctx context.Context, userID string, r
 
 	return s.profileRepo.ApplyReferralCode(ctx, userID, req.ReferralCode)
 }
+
+// ============================================
+// ACCOUNT MANAGEMENT
+// ============================================
+
+// DeleteUserAccount deletes a user account
+func (s *ProfileService) DeleteUserAccount(ctx context.Context, userID string) error {
+	return s.profileRepo.DeleteUserAccount(ctx, userID)
+}
+
+// RequestVerification requests verification badge
+func (s *ProfileService) RequestVerification(ctx context.Context, userID, selfieURL, idDocumentURL string) error {
+	if selfieURL == "" || idDocumentURL == "" {
+		return fmt.Errorf("selfie and ID document are required")
+	}
+
+	return s.profileRepo.RequestVerification(ctx, userID, selfieURL, idDocumentURL)
+}
+
+// ReportUser reports a user
+func (s *ProfileService) ReportUser(ctx context.Context, reporterID, reportedUserID, reason, description string, screenshots []string) error {
+	// Validate not reporting self
+	if reporterID == reportedUserID {
+		return fmt.Errorf("cannot report yourself")
+	}
+
+	// Validate reason
+	validReasons := map[string]bool{
+		"inappropriate_content": true,
+		"fake_profile":          true,
+		"harassment":            true,
+		"scam":                  true,
+		"other":                 true,
+	}
+	if !validReasons[reason] {
+		return fmt.Errorf("invalid report reason")
+	}
+
+	if description == "" {
+		return fmt.Errorf("description is required")
+	}
+
+	return s.profileRepo.ReportUser(ctx, reporterID, reportedUserID, reason, description, screenshots)
+}

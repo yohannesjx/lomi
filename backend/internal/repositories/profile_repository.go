@@ -483,6 +483,96 @@ func (r *ProfileRepository) ApplyReferralCode(ctx context.Context, userID, refer
 }
 
 // ============================================
+// ACCOUNT MANAGEMENT
+// ============================================
+
+// DeleteUserAccount soft deletes a user account
+func (r *ProfileRepository) DeleteUserAccount(ctx context.Context, userID string) error {
+	query := `UPDATE users SET deleted_at = NOW() WHERE id = $1::uuid AND deleted_at IS NULL`
+	result, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found or already deleted")
+	}
+
+	return nil
+}
+
+// RequestVerification creates a verification request
+func (r *ProfileRepository) RequestVerification(ctx context.Context, userID, selfieURL, idDocumentURL string) error {
+	// Check if user already has a pending or approved verification
+	var exists bool
+	checkQuery := `
+		SELECT EXISTS(
+			SELECT 1 FROM verifications 
+			WHERE user_id = $1::uuid 
+			AND status IN ('pending', 'approved')
+		)
+	`
+	err := r.db.GetContext(ctx, &exists, checkQuery, userID)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return fmt.Errorf("verification already requested or approved")
+	}
+
+	// Create verification request
+	query := `
+		INSERT INTO verifications (user_id, selfie_url, id_document_url, status)
+		VALUES ($1::uuid, $2, $3, 'pending')
+	`
+	_, err = r.db.ExecContext(ctx, query, userID, selfieURL, idDocumentURL)
+	return err
+}
+
+// ReportUser creates a report against a user
+func (r *ProfileRepository) ReportUser(ctx context.Context, reporterID, reportedUserID, reason, description string, screenshots []string) error {
+	// Check if user already reported this user recently (within 24 hours)
+	var exists bool
+	checkQuery := `
+		SELECT EXISTS(
+			SELECT 1 FROM reports 
+			WHERE reporter_id = $1::uuid 
+			AND reported_user_id = $2::uuid
+			AND created_at > NOW() - INTERVAL '24 hours'
+		)
+	`
+	err := r.db.GetContext(ctx, &exists, checkQuery, reporterID, reportedUserID)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return fmt.Errorf("you have already reported this user recently")
+	}
+
+	// Convert screenshots to JSONB
+	screenshotsJSON := "[]"
+	if len(screenshots) > 0 {
+		bytes, _ := json.Marshal(screenshots)
+		screenshotsJSON = string(bytes)
+	}
+
+	// Create report
+	query := `
+		INSERT INTO reports (reporter_id, reported_user_id, reason, description, screenshot_urls)
+		VALUES ($1::uuid, $2::uuid, $3::report_reason, $4, $5::jsonb)
+	`
+	_, err = r.db.ExecContext(ctx, query, reporterID, reportedUserID, reason, description, screenshotsJSON)
+	return err
+}
+
+// ============================================
 // HELPER FUNCTIONS
 // ============================================
 

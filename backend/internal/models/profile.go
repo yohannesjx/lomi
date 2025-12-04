@@ -160,3 +160,17 @@ type BlockedUserResponse struct {
 	City      string    `json:"city" db:"city"`
 	BlockedAt time.Time `json:"blocked_at" db:"blocked_at"`
 }
+
+// VerificationRequest represents a verification request
+type VerificationRequest struct {
+	SelfieURL     string `json:"selfie_url" validate:"required,url"`
+	IDDocumentURL string `json:"id_document_url" validate:"required,url"`
+}
+
+// ReportUserRequest represents a user report
+type ReportUserRequest struct {
+	UserID      string   `json:"user_id" validate:"required"`
+	Reason      string   `json:"reason" validate:"required,oneof=inappropriate_content fake_profile harassment scam other"`
+	Description string   `json:"description" validate:"required,min=10"`
+	Screenshots []string `json:"screenshots,omitempty"`
+}

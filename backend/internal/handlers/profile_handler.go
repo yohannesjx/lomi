@@ -425,3 +425,97 @@ func (h *ProfileHandler) ApplyReferralCode(c *fiber.Ctx) error {
 		"msg":  "Referral code applied successfully. You and your referrer have been rewarded!",
 	})
 }
+
+// ============================================
+// ACCOUNT MANAGEMENT
+// ============================================
+
+// DeleteUserAccount handles POST /api/v1/deleteUserAccount
+func (h *ProfileHandler) DeleteUserAccount(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
+
+	err := h.profileService.DeleteUserAccount(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Account deleted successfully",
+	})
+}
+
+// UserVerificationRequest handles POST /api/v1/userVerificationRequest
+func (h *ProfileHandler) UserVerificationRequest(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
+
+	var req models.VerificationRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	if req.SelfieURL == "" || req.IDDocumentURL == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "selfie_url and id_document_url are required",
+		})
+	}
+
+	err := h.profileService.RequestVerification(c.Context(), userID, req.SelfieURL, req.IDDocumentURL)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Verification request submitted successfully. We'll review it within 24-48 hours.",
+	})
+}
+
+// ReportUser handles POST /api/v1/reportUser
+func (h *ProfileHandler) ReportUser(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	reporterID := claims["user_id"].(string)
+
+	var req models.ReportUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	if req.UserID == "" || req.Reason == "" || req.Description == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "user_id, reason, and description are required",
+		})
+	}
+
+	err := h.profileService.ReportUser(c.Context(), reporterID, req.UserID, req.Reason, req.Description, req.Screenshots)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Report submitted successfully. We'll review it and take appropriate action.",
+	})
+}
