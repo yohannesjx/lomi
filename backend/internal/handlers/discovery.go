@@ -58,10 +58,17 @@ func GetSwipeCards(c *fiber.Ctx) error {
 	// Build query
 	query := database.DB.Where("id != ?", userID).
 		Where("is_active = ?", true).
-		Where("age >= ? AND age <= ?", minAge, maxAge).
-		Where("city = ?", currentUser.City). // Same city for now
-		Where("id NOT IN ?", swipedIDs).
-		Where("id NOT IN ?", blockedIDs)
+		Where("age >= ? AND age <= ?", minAge, maxAge)
+		// Temporarily disabled city filter for testing
+		// .Where("city = ?", currentUser.City)
+
+	// Only exclude if there are actually blocked/swiped users
+	if len(swipedIDs) > 0 {
+		query = query.Where("id NOT IN ?", swipedIDs)
+	}
+	if len(blockedIDs) > 0 {
+		query = query.Where("id NOT IN ?", blockedIDs)
+	}
 
 	// Gender preference - check user's looking_for preference
 	var lookingFor string
