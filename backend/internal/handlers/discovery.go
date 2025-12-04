@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"lomi-backend/config"
 	"lomi-backend/internal/database"
 	"lomi-backend/internal/models"
@@ -91,9 +92,21 @@ func GetSwipeCards(c *fiber.Ctx) error {
 
 	// Limit to 20 cards per request
 	var users []models.User
+
+	// Debug logging
+	log.Printf("🔍 Discover query filters:")
+	log.Printf("  - Current user ID: %s", userID)
+	log.Printf("  - Age range: %d - %d", minAge, maxAge)
+	log.Printf("  - Swiped IDs count: %d", len(swipedIDs))
+	log.Printf("  - Blocked IDs count: %d", len(blockedIDs))
+	log.Printf("  - is_active: true")
+
 	if err := query.Limit(20).Order("created_at DESC").Find(&users).Error; err != nil {
+		log.Printf("❌ Query error: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch users"})
 	}
+
+	log.Printf("✅ Found %d users", len(users))
 
 	// Get photos for each user
 	type UserCard struct {
