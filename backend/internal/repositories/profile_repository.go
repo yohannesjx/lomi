@@ -140,9 +140,12 @@ func (r *ProfileRepository) GetFollowers(ctx context.Context, userID string, vie
 		LIMIT $3 OFFSET $4
 	`
 
-	var followers []models.FollowerResponse
+	followers := make([]models.FollowerResponse, 0)
 	err := r.db.SelectContext(ctx, &followers, query, userID, viewerID, pageSize, offset)
-	return followers, err
+	if err != nil {
+		return followers, err
+	}
+	return followers, nil
 }
 
 // GetFollowing gets list of users that a user follows
@@ -161,9 +164,12 @@ func (r *ProfileRepository) GetFollowing(ctx context.Context, userID string, vie
 		LIMIT $3 OFFSET $4
 	`
 
-	var following []models.FollowerResponse
+	following := make([]models.FollowerResponse, 0)
 	err := r.db.SelectContext(ctx, &following, query, userID, viewerID, pageSize, offset)
-	return following, err
+	if err != nil {
+		return following, err
+	}
+	return following, nil
 }
 
 // ============================================
@@ -231,9 +237,12 @@ func (r *ProfileRepository) GetBlockedUsers(ctx context.Context, userID string, 
 		LIMIT $2 OFFSET $3
 	`
 
-	var blocked []models.BlockedUserResponse
+	blocked := make([]models.BlockedUserResponse, 0)
 	err := r.db.SelectContext(ctx, &blocked, query, userID, pageSize, offset)
-	return blocked, err
+	if err != nil {
+		return blocked, err
+	}
+	return blocked, nil
 }
 
 // ============================================
@@ -422,7 +431,10 @@ func (r *ProfileRepository) GetReferralStats(ctx context.Context, userID string)
 		GROUP BY u.referral_code
 	`
 	err := r.db.GetContext(ctx, &stats, query, userID)
-	return &stats, err
+	if err != nil {
+		return nil, err
+	}
+	return &stats, nil
 }
 
 // ApplyReferralCode applies a referral code for a new user
