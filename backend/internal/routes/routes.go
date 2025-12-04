@@ -17,6 +17,15 @@ func SetupRoutes(app *fiber.App) {
 		return c.JSON(fiber.Map{"status": "ok", "message": "Lomi Backend is running 🍋"})
 	})
 
+	// Legacy endpoints (now under v1)
+	legacyHandler := handlers.NewLegacyHandler()
+	api.Post("/showRooms", legacyHandler.ShowRooms)
+	api.Post("/showFriendsStories", legacyHandler.ShowFriendsStories)
+	api.Post("/showSettings", legacyHandler.ShowSettings)
+	api.Post("/showVideoDetailAd", legacyHandler.ShowVideoDetailAd)
+	api.Post("/showUnReadNotifications", legacyHandler.ShowUnReadNotifications)
+	api.Post("/checkPhoneNo", legacyHandler.CheckPhoneNo)
+
 	// Test endpoints for debugging
 	api.Get("/test", handlers.TestEndpoint)
 	api.Post("/test", handlers.TestEndpoint)
