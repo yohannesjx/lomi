@@ -455,7 +455,29 @@ func (h *AuthHandler) GoogleLogin(c *fiber.Ctx) error {
 
 		// 3. Create new user if needed
 		if user.ID == uuid.Nil {
+			// Generate unique username from email
+			username := strings.Split(email, "@")[0]
+			username = strings.ReplaceAll(username, ".", "_")
+			username = strings.ReplaceAll(username, "+", "_")
+
+			// Check if username exists and make it unique
+			var existingUser models.User
+			baseUsername := username
+			counter := 1
+			for {
+				if err := tx.Where("username = ?", username).First(&existingUser).Error; err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						break // Username is available
+					}
+					return err
+				}
+				// Username exists, try with counter
+				username = fmt.Sprintf("%s%d", baseUsername, counter)
+				counter++
+			}
+
 			newUser := models.User{
+				Username:           username,
 				Name:               fullName,
 				Email:              email,
 				Age:                18,
