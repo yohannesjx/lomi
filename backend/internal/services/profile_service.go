@@ -241,3 +241,42 @@ func (s *ProfileService) ReportUser(ctx context.Context, reporterID, reportedUse
 
 	return s.profileRepo.ReportUser(ctx, reporterID, reportedUserID, reason, description, screenshots)
 }
+
+// ============================================
+// SOCIAL FEATURES
+// ============================================
+
+// GenerateQRCode generates QR code data for a user profile
+func (s *ProfileService) GenerateQRCode(ctx context.Context, userID string) (*models.QRCodeResponse, error) {
+	// Get user's referral code
+	code, err := s.profileRepo.GetReferralCode(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// In production, you would generate actual QR code image here
+	// For now, return the data needed to generate QR code on client side
+	profileURL := fmt.Sprintf("https://lomi.app/profile/%s", userID)
+	qrCodeURL := fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=%s", profileURL)
+
+	return &models.QRCodeResponse{
+		QRCodeURL:    qrCodeURL,
+		ProfileURL:   profileURL,
+		ReferralCode: code,
+	}, nil
+}
+
+// ShareProfile tracks a profile share
+func (s *ProfileService) ShareProfile(ctx context.Context, sharedBy string, req *models.ShareProfileRequest) error {
+	// Validate platform
+	validPlatforms := map[string]bool{
+		"whatsapp": true, "telegram": true, "twitter": true,
+		"facebook": true, "instagram": true, "link": true,
+		"sms": true, "email": true, "other": true,
+	}
+	if !validPlatforms[req.Platform] {
+		return fmt.Errorf("invalid platform")
+	}
+
+	return s.profileRepo.TrackProfileShare(ctx, req.UserID, sharedBy, req.Platform)
+}

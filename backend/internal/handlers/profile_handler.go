@@ -519,3 +519,63 @@ func (h *ProfileHandler) ReportUser(c *fiber.Ctx) error {
 		"msg":  "Report submitted successfully. We'll review it and take appropriate action.",
 	})
 }
+
+// ============================================
+// SOCIAL FEATURES
+// ============================================
+
+// GenerateQRCode handles GET /api/v1/generateQRCode
+func (h *ProfileHandler) GenerateQRCode(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userID := claims["user_id"].(string)
+
+	qrData, err := h.profileService.GenerateQRCode(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"code": 500,
+			"msg":  "Failed to generate QR code",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "success",
+		"data": qrData,
+	})
+}
+
+// ShareProfile handles POST /api/v1/shareProfile
+func (h *ProfileHandler) ShareProfile(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	sharedBy := claims["user_id"].(string)
+
+	var req models.ShareProfileRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "Invalid request body",
+		})
+	}
+
+	if req.UserID == "" || req.Platform == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  "user_id and platform are required",
+		})
+	}
+
+	err := h.profileService.ShareProfile(c.Context(), sharedBy, &req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code": 400,
+			"msg":  err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"code": 200,
+		"msg":  "Profile share tracked successfully",
+	})
+}

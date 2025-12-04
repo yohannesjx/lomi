@@ -573,6 +573,28 @@ func (r *ProfileRepository) ReportUser(ctx context.Context, reporterID, reported
 }
 
 // ============================================
+// SOCIAL FEATURES
+// ============================================
+
+// TrackProfileShare tracks when a user shares a profile
+func (r *ProfileRepository) TrackProfileShare(ctx context.Context, userID, sharedBy, platform string) error {
+	query := `
+		INSERT INTO profile_shares (user_id, shared_by, platform)
+		VALUES ($1::uuid, $2::uuid, $3)
+	`
+	_, err := r.db.ExecContext(ctx, query, userID, sharedBy, platform)
+	return err
+}
+
+// GetProfileShareCount gets total shares for a user
+func (r *ProfileRepository) GetProfileShareCount(ctx context.Context, userID string) (int64, error) {
+	var count int64
+	query := `SELECT COUNT(*) FROM profile_shares WHERE user_id = $1::uuid`
+	err := r.db.GetContext(ctx, &count, query, userID)
+	return count, err
+}
+
+// ============================================
 // HELPER FUNCTIONS
 // ============================================
 

@@ -115,6 +115,13 @@ func SetupRoutes(app *fiber.App, walletHandler *handlers.WalletHandler, profileH
 	protected.Post("/userVerificationRequest", profileHandler.UserVerificationRequest)
 	protected.Post("/reportUser", profileHandler.ReportUser)
 
+	// ============================================
+	// SOCIAL FEATURES (Phase 4)
+	// ============================================
+
+	protected.Get("/generateQRCode", profileHandler.GenerateQRCode)
+	protected.Post("/shareProfile", profileHandler.ShareProfile)
+
 	// Settings (keeping existing handlers for now)
 
 	// Media
