@@ -142,8 +142,8 @@ type ApplyReferralCodeRequest struct {
 // ReferralCodeResponse represents referral code info
 type ReferralCodeResponse struct {
 	ReferralCode   string `json:"referral_code"`
-	TotalReferrals int    `json:"total_referrals"`
-	TotalRewards   int    `json:"total_rewards"`
+	TotalReferrals int64  `json:"total_referrals"`
+	TotalRewards   int64  `json:"total_rewards"`
 }
 
 // BlockUserRequest represents a block/unblock request
