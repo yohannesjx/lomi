@@ -62,6 +62,7 @@ type EditProfileRequest struct {
 	FirstName        *string  `json:"first_name,omitempty"`
 	LastName         *string  `json:"last_name,omitempty"`
 	Username         *string  `json:"username,omitempty"`
+	Nickname         *string  `json:"nickname,omitempty"`
 	Bio              *string  `json:"bio,omitempty"`
 	Website          *string  `json:"website,omitempty"`
 	City             *string  `json:"city,omitempty"`
@@ -83,6 +84,7 @@ type FollowUserRequest struct {
 type UserProfileResponse struct {
 	ID               string    `json:"id"`
 	Name             string    `json:"name"`
+	Nickname         string    `json:"nickname"`
 	Age              int       `json:"age"`
 	Gender           string    `json:"gender"`
 	City             string    `json:"city"`

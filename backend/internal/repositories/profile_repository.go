@@ -40,6 +40,11 @@ func (r *ProfileRepository) UpdateProfile(ctx context.Context, userID string, re
 		args = append(args, *req.Username)
 		argCount++
 	}
+	if req.Nickname != nil {
+		updates = append(updates, fmt.Sprintf("nickname = $%d", argCount))
+		args = append(args, *req.Nickname)
+		argCount++
+	}
 	if req.Bio != nil {
 		updates = append(updates, fmt.Sprintf("bio = $%d", argCount))
 		args = append(args, *req.Bio)
