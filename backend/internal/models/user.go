@@ -81,6 +81,7 @@ type User struct {
 
 	// Profile Information
 	Username         string           `gorm:"size:30;uniqueIndex"`
+	Nickname         string           `gorm:"size:50"`
 	Name             string           `gorm:"size:255;not null"`
 	Age              int              `gorm:"not null"`
 	Gender           Gender           `gorm:"type:gender_type;not null"`
